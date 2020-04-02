@@ -1,134 +1,117 @@
 
 
-;; (setq tree
-;;       (with-current-buffer "lorum.org"
-;;         (org-element-parse-buffer)))
+(defvar prnt-curr nil)
+(defvar prnt-alist nil)
+(defvar prev-key nil)
 
 
-;; (setq tmp
-;;       (org-element-map tree 'headline
-;;         (lambda (headline) headline)
-;;         nil t))
+(defun make-key (level header) (cons level header))
+(defun make-values (line perc) (list :nlines line :percent perc))
+(defun get-lineinf (info keyf) (line-number-at-pos (plist-get info keyf)))
+(defun calc-percentage (child par) (/ (float (* 100 child)) par))
+(defun calc-nlines (info) (- (get-lineinf info :end)
+                             (get-lineinf info :begin)))
+(defun next-match (point1) (progn (org-next-visible-heading 1)
+                                  (not (eq point1 (point)))))
 
+(defun setroot ()
+  "Perform once.
+Jump to end and beginning to get full bounds."
+  (let ((dline (- (progn (end-of-buffer)
+                         (org-backward-sentence)
+                         (line-number-at-pos (point)))
+                  (progn (goto-char 0)
+                         (org-next-visible-heading 1)
+                         (line-number-at-pos (point)))))
+        (dkey (make-key 0 nil)))
+    ;;
+    (puthash dkey (make-values dline nil) hasher)
+    (push dkey prnt-alist)))
 
-(defun calculate-numlines (info)
-  ""
-  (- (line-number-at-pos (plist-get info :end))
-     (line-number-at-pos (plist-get info :begin))))
-
+(defun get-parent (lvl-now)
+  (let ((prev-lvl (car prev-key))
+        (prev-hdr (cdr prev-key))
+        (curr-parent (car prnt-alist)))
+    (cond ((not prev-lvl)
+           curr-parent)
+          ((> lvl-now prev-lvl)
+           ;; Gone N level's deep, push the last
+           ;; heading as the new parent at level
+           (car (push (make-key prev-lvl prev-hdr) prnt-alist)))
+          ;;
+          ((< lvl-now prev-lvl)
+           ;; Returned to a level up. Pop all levels up to.
+           (while (>= (caar prnt-alist) lvl-now)
+             (pop prnt-alist))
+           (car prnt-alist))
+          (t curr-parent))))
 
 (defun process-visible ()
   "The idea is to get stats only for the visible portions of the buffer.
 To investigate further, expand a heading."
   (let ((hasher (make-hash-table :test 'equal)))
+    (setq prnt-curr nil
+          prnt-alist nil
+          prev-key nil)
     (save-excursion
-      ;; Jump to end and get root bounds
-      (let ((dline (- (progn (end-of-buffer)
-                             (org-backward-sentence)
-                             (line-number-at-pos (point)))
-                      (progn (goto-char 0)
-                             (org-next-visible-heading 1)
-                             (line-number-at-pos (point)))))
-            (dkey (cons 0 nil)))
-        ;;
-        (puthash dkey (list :nlines dline :percent nil) hasher)
-        ;;
-        ;; Jump to beginning and parse headers
-        (goto-char 0)
-        (let ((header t)
-              (current-parent dkey)
-              (parent-alist nil)
-              (prev-level 0)
-              (prev-header nil))
-          (while header
-            (org-next-visible-heading 1)
-            (let* ((info (cadr (org-element-at-point)))
-                   (head (plist-get info :title))
-                   (level (plist-get info :level)))
-              (setq header head)
-              (when head
-                ;; -- Check parent
-                (setq current-parent
-                      (cond ((> level prev-level)
-                             ;; Gone N level's deep, push the last
-                             ;; heading as the new parent at level
-                             (car (push (cons prev-level prev-header)
-                                   parent-alist)))
-                            ;;
-                            ((< level prev-level)
-                             ;; Returned to a level up.
-                             ;; -- pop all levels in between
-                             (while (>= (caar parent-alist) level)
-                               (pop parent-alist))
-                             (pop parent-alist))
-                            (t current-parent)))
-                ;;
-                ;; -- Progress under assumption of correct root
-                ;;
-                (let* ((dlin (calculate-numlines info))
-                       (key-element (cons level head))
-                       (parent-info (gethash current-parent hasher))
-                       (parent-lnum (plist-get parent-info :nlines))
-                       (percent (/ (float (* 100 dlin)) parent-lnum)))
-                  ;;
-                  (puthash key-element (list :nlines dlin :percent percent)
-                           hasher)
-                  (setq prev-level level
-                        prev-header head))))))))
-        hasher))
+      (setroot)
+      ;; Jump to beginning and parse headers
+      (goto-char 0)
+      ;;
+      (while (next-match (point))
+        (let* ((info (cadr (org-element-at-point)))
+               (head (plist-get info :title))
+               (level (plist-get info :level)))
+          (when head
+            ;; Check and update parent
+            (setq prnt-curr (get-parent level))
+            ;;
+            (let ((dline (calc-nlines info))
+                  (elkey (make-key level head))
+                  (_prnt-inf (gethash prnt-curr hasher)))
+              (let ((percent (calc-percentage
+                              dline
+                              (plist-get _prnt-inf :nlines))))
+                (puthash elkey (make-values dline percent) hasher)
+                (setq prev-key elkey)))))))
+    hasher))
 
 
-(setq tmp
-      (let ((res nil))
-        (maphash
-         (lambda (k info)
-           (push (cons (cdr k) (plist-get info :percent)) res))
-         (with-current-buffer "projects.org"
-           (process-visible)))
-        res))
+(setq tmp (with-current-buffer "lorum.org" (process-visible)))
+
+(defun print-stats ()
+  "Released."
+  (maphash
+   (lambda (levhead linperc)
+     (let ((indent (make-string (* 4 (car levhead)) ? ))
+           (header (or (cdr levhead) "-root-"))
+           (nlines (or (plist-get linperc :nlines) 0))
+           (percnt (or (plist-get linperc :percent) 0)))
+       (insert
+        (format "\n;;%s[%4d,%3.0f] -- %s "
+                indent nlines percnt header))))
+   (with-current-buffer "lorum.org" (process-visible))))
 
 
-(dolist (var (cdr (reverse tmp)))
-  (insert (format "\n |%s | %2.1f |" (car var) (cdr var))))
- |Galaxy | 26.7 |
- |Projects | 19.7 |
- |Talks and Conferences | 1.4 |
- |GCC | 38.1 |
- |GCB | 24.5 |
- |Bled | 7.9 |
- |Book train tickets | 27.3 |
- |Submit Dienstreiseantrag to Monika | 18.2 |
- |Pay the registration fee | 36.4 |
- |Give to Monika confirmation of payment | 18.2 |
- |Recieve Compensation | 27.3 |
- |asdad | 66.7 |
- |Single Cell Journal Club | 6.5 |
- |MeInBio | 25.2 |
- |Teaching | 12.1 |
- |Recreation | 1.0 |
- |Productivity | 6.8 |
- |Papers | 12.0 |
- |Home Projects | 8.7 |
- |Life | 12.0 |
 
-|Galaxy | 26.7 |
-|Projects | 19.7 |
-|Talks and Conferences | 1.4 |
-   |GCC | 37.7 |
-   |GCB | 23.9 |
-   |Bled | 7.2 |
-     |Book train tickets | 20.0 |
-     |Submit Dienstreiseantrag to Monika | 10.0 |
-     |Pay the registration fee | 30.0 |
-     |Give to Monika confirmation of payment | 10.0 |
-     |Recieve Compensation | 20.0 |
-       |asdad | 50.0 |
-   |Single Cell Journal Club | 5.8 |
-   |MeInBio | 24.6 |
-|Teaching | 12.1 |
-|Recreation | 1.0 |
-|Productivity | 6.8 |
-|Papers | 12.0 |
-|Home Projects | 8.7 |
-|Life | 12.0 |
-
+;;[9770,  0] -- -root- 
+;;    [2613, 27] -- Galaxy 
+;;    [1928, 20] -- Projects 
+;;    [ 137,  1] -- Talks and Conferences 
+;;    [1186, 12] -- Teaching 
+;;        [ 740, 62] -- 2019 WS 
+;;        [ 429, 36] -- Students / HiWis 
+;;        [  16,  1] -- Other 
+;;    [  97,  1] -- Recreation 
+;;    [ 661,  7] -- Productivity 
+;;    [1179, 12] -- Papers 
+;;        [ 535, 45] -- Reviews 
+;;            [ 367, 69] -- BIOINF-2018-2481 
+;;            [ 126, 24] -- GigaScience Galaxy scRNA paper 
+;;            [   3,  1] -- JESTCH_2019_1343 
+;;            [  18,  3] -- [12/12] 2019 Feb - Omer 
+;;            [  20,  4] -- [8/8] 2019 June - Viktor and Omer 
+;;        [ 562, 48] -- Read 
+;;        [  81,  7] -- Write 
+;;    [ 848,  9] -- Home Projects 
+;;    [1140, 12] -- Life 
