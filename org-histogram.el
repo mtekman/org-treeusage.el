@@ -22,21 +22,18 @@
 
 ;;; Commentary:
 
-;; 
+;;
 
 ;;; Code:
 (require 'org-element)
-
-(defvar prnt-curr nil)
-(defvar prnt-alist nil)
-(defvar prev-key nil)
 
 (defun org-histogram--makekey (level header)
   "Generate key for hash using LEVEL and HEADER."
   (cons level header))
 
-(defun org-histogram--makevalues (line perc bounds)
-  "Create a value from LINE and PERC BOUNDS set."
+(defun org-histogram--makevalues (line
+                                  &optional perc bounds)
+  "Create a value from LINE and optional PERC, BOUNDS set."
   (list :nlines line :percent perc :bounds bounds))
 
 (defun org-histogram--getlineinf (info keyf)
@@ -58,7 +55,7 @@ Percentages are not super accurate, but are a good gauge."
   (progn (org-next-visible-heading 1)
          (not (eq point1 (point)))))
 
-(defun org-histogram--setroot (hasher)
+(defun org-histogram--makeroot (hasher)
   "Perform once.  Get full bounds, and put into HASHER."
   (let ((dline (- (progn (goto-char (point-max))
                          (org-backward-sentence)
@@ -67,32 +64,9 @@ Percentages are not super accurate, but are a good gauge."
                          (org-next-visible-heading 1)
                          (line-number-at-pos (point)))))
         (dkey (org-histogram--makekey 0 nil)))
-    (puthash dkey (org-histogram--makevalues dline
-                                             nil nil)
-             hasher)
-    (push dkey prnt-alist)))
-
-(defun org-histogram--updateparents (lvl-now)
-  "Get or update parent from current level LVL-NOW."
-  (let ((prev-lvl (car prev-key))
-        (prev-hdr (cdr prev-key))
-        (curr-parent (car prnt-alist)))
-    (cond ((not prev-lvl)
-           curr-parent)
-          ((> lvl-now prev-lvl)
-           ;; Gone N level's deep, push the last
-           ;; heading as the new parent at level
-           (car (push
-                 (org-histogram--makekey prev-lvl
-                                         prev-hdr)
-                 prnt-alist)))
-          ;;
-          ((< lvl-now prev-lvl)
-           ;; Returned to a level up. Pop all levels up to.
-           (while (>= (caar prnt-alist) lvl-now)
-             (pop prnt-alist))
-           (car prnt-alist))
-          (t curr-parent))))
+    (move-beginning-of-line 0)
+    (puthash dkey (org-histogram--makevalues dline) hasher)
+    dkey))
 
 (defun org-histogram--gettitlebounds (info)
   "Get title and bounds from INFO."
@@ -105,21 +79,45 @@ Percentages are not super accurate, but are a good gauge."
         (let* ((end (search-forward-regexp
                      ;; Capture: [1/1] User
                      (shell-quote-argument head) bend))
-               (beg (match-beginning 0)))
+               (beg (+ 2 (search-backward "* " bbeg))))
           `(,head . (,beg . ,end)))))))
 
+(defvar prnt-alist nil)
+
+
+(defun org-histogram--updateparents (lvl-now previousk)
+  "Get or update parent into PRNT-ALIST based on PREVIOUSK.
+From current level LVL-NOW."
+  (let ((prev-lvl (car previousk))
+        (prev-hdr (cdr previousk))
+        (curr-parent (car prnt-alist)))
+    (cond ((not prev-lvl)
+           curr-parent)
+          ((> lvl-now prev-lvl)
+           ;; Gone N level's deep, push the last
+           ;; heading as the new parent at level
+           (car (push
+                 (org-histogram--makekey prev-lvl prev-hdr)
+                 prnt-alist)))
+          ;;
+          ((< lvl-now prev-lvl)
+           ;; Returned to a level up. Pop all levels up to.
+           (while (>= (caar prnt-alist) lvl-now)
+             (pop prnt-alist))
+           (car prnt-alist))
+          (t curr-parent))))
 
 (defun org-histogram--processvisible ()
   "The idea is to get stats only for the visible portions of the buffer.
 To investigate further, expand a heading."
-  (let ((hasher (make-hash-table :test 'equal)))
-    (setq prnt-curr nil
-          prnt-alist nil
-          prev-key nil)
-    (save-excursion
-      (org-histogram--setroot hasher)
+  (save-excursion
+    (setq prnt-alist nil)
+    (let ((hasher (make-hash-table :test 'equal))
+          (prnt-curr nil)
+          (prev-key nil))
       ;; Jump to beginning and parse headers
-      (goto-char 0)
+      (push (org-histogram--makeroot hasher) prnt-alist)
+      ;;
       (while (org-histogram--nextmatch (point))
         (let ((info (cadr (org-element-at-point))))
           (let ((level (plist-get info :level))
@@ -128,7 +126,8 @@ To investigate further, expand a heading."
                   (hrng (cdr bound)))
               (when head
                 ;; Check and update parent
-                (setq prnt-curr (org-histogram--updateparents level))
+                (setq prnt-curr (org-histogram--updateparents
+                                 level prev-key))
                 ;;
                 (let ((dline (org-histogram--calcnlines info))
                       (elkey (org-histogram--makekey level
@@ -142,25 +141,50 @@ To investigate further, expand a heading."
                                                         percent
                                                         hrng)
                              hasher)
-                    (setq prev-key elkey)))))))))
-    hasher))
+                    (setq prev-key elkey))))))))
+      hasher)))
 
+(defvar format-choices
+  '((barlineperc . "%1$-5s |%3$-5d|%2$5.1f%%")
+    (barline . "%1$s%3$d")
+    (perc . "%2$5.1f%%")
+    (line . "%3$d")
+    (bar . "%1$-5s")
+    (custom . nil)))
 
-(defun org-histogram--setoverlays ()
-  "Set the overlays from HASHTABLE."
-  (maphash
-   (lambda (head info)
-     (ignore head)
-     (let ((bounds (plist-get info :bounds))
-           (nlines (plist-get info :nlines))
-           (percent (plist-get info :percent)))
-       (if percent
-           (let ((ov (make-overlay (car bounds) (cdr bounds))))
-             (overlay-put ov :org-histogram t)
-             (overlay-put ov 'display (format "%2.1f%% {%d}"
-                                              percent nlines))))))
-   (with-current-buffer "lorum.org" (org-histogram--processvisible))))
+(defcustom org-histogram-percentlevels
+  '(((-9 .  1)  . ▏)
+    (( 2 . 10)  . ▎)
+    ((11 . 20)  . ▋)
+    ((21 . 30)  . █)
+    ((31 . 40)  . █▋)
+    ((41 . 50)  . ██)
+    ((51 . 60)  . ██▋)
+    ((61 . 70)  . ███)
+    ((71 . 80)  . ███▋)
+    ((81 . 90)  . ████)
+    ((91 . 110) . ████▋))
+  "Set the percentage lower and upper bands and  the corresponding symbol."
+  :type 'alist
+  :group 'org-histogram)
 
+(defcustom org-histogram-customformat  "%1$-5s--%3$d"
+  "Manually specify the format for each string.
+The format takes 3 positional arguments:
+ 1. A string representing the percentage band as set in
+    `org-histogram-percentlevels'.
+ 2. A float showing the current percentage
+ 3. An integer showing the number of lines in the section."
+  :type 'string
+  :group 'org-histogram)
+
+(defcustom org-histogram-formatchoice 'barline
+  "Choose the format line to express the density.
+Choices are bar, line, perc, barline, barlineperc, or custom.
+For custom, users should set the `org-histogram-customformat' variable."
+  :options (mapcar 'car format-choices)
+  :type 'symbol
+  :group 'org-histogram)
 
 (defun org-histogram--removeoverlays ()
   "Remove all overlays."
@@ -171,6 +195,34 @@ To investigate further, expand a heading."
           (when (overlay-get ov :org-histogram)
             (delete-overlay ov))))))
 
+
+(defun org-histogram--getformatline ()
+  "Get format line, if custom, then use custom format string."
+  (or (alist-get org-histogram-formatchoice format-choices)
+      org-histogram-customformat))
+
+
+(defun org-histogram--setoverlays ()
+  "Set the overlays."
+  (org-histogram--removeoverlays)
+  (let ((lineform (org-histogram--getformatline)))
+    (maphash
+     (lambda (head info)
+       (let ((bounds (plist-get info :bounds))
+             (nlines (plist-get info :nlines))
+             (percer (plist-get info :percent))
+             (leveln (car head)))
+         (if percer
+             (let ((oface (intern (format "org-level-%s" leveln)))
+                   (ovner (make-overlay (car bounds) (cdr bounds)))
+                   (p-bar (cdr (--first (<= (caar it) (truncate percer)
+                                            (cdar it))
+                                        org-histogram-percentlevels))))
+               (overlay-put ovner :org-histogram t)
+               (overlay-put ovner 'face oface)
+               (overlay-put ovner 'display
+                            (format lineform p-bar percer nlines))))))
+     (org-histogram--processvisible))))
 
 (defun org-histogram--printstats ()
   "Print stats."
