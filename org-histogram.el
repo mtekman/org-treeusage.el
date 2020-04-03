@@ -1,50 +1,78 @@
+;;; org-histogram.el --- Peek the density -*- lexical-binding: t; -*-
 
+;; Copright (C) 2020 Mehmet Tekman <mtekman89@gmail.com>
+
+;; Author: Mehmet Tekman
+;; URL: https://github.com/mtekman/org-histogram.el
+;; Keywords: outlines
+;; Package-Requires: ((emacs "24.3"))
+;; Version: 0.1
+
+;;; License:
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;;; Commentary:
+
+;; 
+
+;;; Code:
+(require 'org-element)
 
 (defvar prnt-curr nil)
 (defvar prnt-alist nil)
 (defvar prev-key nil)
 
-
-(defun make-key (level header)
+(defun org-histogram--makekey (level header)
   "Generate key for hash using LEVEL and HEADER."
   (cons level header))
 
-(defun make-values (line perc bounds)
-  "Create a value from LINE and PERC BOUNDS set"
+(defun org-histogram--makevalues (line perc bounds)
+  "Create a value from LINE and PERC BOUNDS set."
   (list :nlines line :percent perc :bounds bounds))
 
-(defun get-lineinf (info keyf)
+(defun org-histogram--getlineinf (info keyf)
   "Get line number for specific INFO keyword KEYF."
   (line-number-at-pos (plist-get info keyf)))
 
-(defun calc-percentage (child par)
+(defun org-histogram--calcperc (child par)
   "Calculate percentage of CHILD against PAR.
 Percentages are not super accurate, but are a good gauge."
   (/ (float (* 100 child)) par))
 
-(defun calc-nlines (info)
+(defun org-histogram--calcnlines (info)
   "Calculate the number of lines from INFO."
-  (- (get-lineinf info :end)
-     (get-lineinf info :begin)))
+  (- (org-histogram--getlineinf info :end)
+     (org-histogram--getlineinf info :begin)))
 
-(defun next-match (point1)
+(defun org-histogram--nextmatch (point1)
   "Get next match from current POINT1."
   (progn (org-next-visible-heading 1)
          (not (eq point1 (point)))))
 
-(defun setroot ()
-  "Perform once. Get full bounds."
-  (let ((dline (- (progn (end-of-buffer)
+(defun org-histogram--setroot (hasher)
+  "Perform once.  Get full bounds, and put into HASHER."
+  (let ((dline (- (progn (goto-char (point-max))
                          (org-backward-sentence)
                          (line-number-at-pos (point)))
                   (progn (goto-char 0)
                          (org-next-visible-heading 1)
                          (line-number-at-pos (point)))))
-        (dkey (make-key 0 nil)))
-    (puthash dkey (make-values dline nil nil) hasher)
+        (dkey (org-histogram--makekey 0 nil)))
+    (puthash dkey (org-histogram--makevalues dline
+                                             nil nil)
+             hasher)
     (push dkey prnt-alist)))
 
-(defun update-parent (lvl-now)
+(defun org-histogram--updateparents (lvl-now)
   "Get or update parent from current level LVL-NOW."
   (let ((prev-lvl (car prev-key))
         (prev-hdr (cdr prev-key))
@@ -54,7 +82,10 @@ Percentages are not super accurate, but are a good gauge."
           ((> lvl-now prev-lvl)
            ;; Gone N level's deep, push the last
            ;; heading as the new parent at level
-           (car (push (make-key prev-lvl prev-hdr) prnt-alist)))
+           (car (push
+                 (org-histogram--makekey prev-lvl
+                                         prev-hdr)
+                 prnt-alist)))
           ;;
           ((< lvl-now prev-lvl)
            ;; Returned to a level up. Pop all levels up to.
@@ -63,7 +94,7 @@ Percentages are not super accurate, but are a good gauge."
            (car prnt-alist))
           (t curr-parent))))
 
-(defun get-title-bounds (info)
+(defun org-histogram--gettitlebounds (info)
   "Get title and bounds from INFO."
   (let ((head (plist-get info :title))
         (bend (plist-get info :contents-begin))
@@ -78,7 +109,7 @@ Percentages are not super accurate, but are a good gauge."
           `(,head . (,beg . ,end)))))))
 
 
-(defun process-visible ()
+(defun org-histogram--processvisible ()
   "The idea is to get stats only for the visible portions of the buffer.
 To investigate further, expand a heading."
   (let ((hasher (make-hash-table :test 'equal)))
@@ -86,36 +117,40 @@ To investigate further, expand a heading."
           prnt-alist nil
           prev-key nil)
     (save-excursion
-      (setroot)
+      (org-histogram--setroot hasher)
       ;; Jump to beginning and parse headers
       (goto-char 0)
-      (while (next-match (point))
+      (while (org-histogram--nextmatch (point))
         (let ((info (cadr (org-element-at-point))))
           (let ((level (plist-get info :level))
-                (_bound (get-title-bounds info)))
-            (let ((head (car _bound))
-                  (hrng (cdr _bound)))
+                (bound (org-histogram--gettitlebounds info)))
+            (let ((head (car bound))
+                  (hrng (cdr bound)))
               (when head
                 ;; Check and update parent
-                (setq prnt-curr (update-parent level))
+                (setq prnt-curr (org-histogram--updateparents level))
                 ;;
-                (let ((dline (calc-nlines info))
-                      (elkey (make-key level head))
-                      (_prnt-inf (gethash prnt-curr hasher)))
-                  (let ((percent (calc-percentage
+                (let ((dline (org-histogram--calcnlines info))
+                      (elkey (org-histogram--makekey level
+                                                     head))
+                      (prnt-inf (gethash prnt-curr hasher)))
+                  (let ((percent (org-histogram--calcperc
                                   dline
-                                  (plist-get _prnt-inf :nlines))))
+                                  (plist-get prnt-inf :nlines))))
                     (puthash elkey
-                             (make-values dline percent hrng)
+                             (org-histogram--makevalues dline
+                                                        percent
+                                                        hrng)
                              hasher)
                     (setq prev-key elkey)))))))))
     hasher))
 
 
-(defun set-overlays (hashtable)
+(defun org-histogram--setoverlays ()
   "Set the overlays from HASHTABLE."
   (maphash
    (lambda (head info)
+     (ignore head)
      (let ((bounds (plist-get info :bounds))
            (nlines (plist-get info :nlines))
            (percent (plist-get info :percent)))
@@ -124,10 +159,11 @@ To investigate further, expand a heading."
              (overlay-put ov :org-histogram t)
              (overlay-put ov 'display (format "%2.1f%% {%d}"
                                               percent nlines))))))
-   hashtable))
+   (with-current-buffer "lorum.org" (org-histogram--processvisible))))
 
-(defun remove-overlays ()
-  ;; Scraped from alphapapa's behind
+
+(defun org-histogram--removeoverlays ()
+  "Remove all overlays."
   (let ((ovs (overlays-in (point-min) (point-max))))
     (if (cl-loop for ov in ovs
                  thereis (overlay-get ov :org-histogram))
@@ -136,9 +172,8 @@ To investigate further, expand a heading."
             (delete-overlay ov))))))
 
 
-
-(defun print-stats ()
-  "Released."
+(defun org-histogram--printstats ()
+  "Print stats."
   (maphash
    (lambda (head info)
      (let ((indent (make-string (* 4 (car head)) ? ))
@@ -148,32 +183,7 @@ To investigate further, expand a heading."
        (insert
         (format "\n;;%s %3.0f -- %s {%d}"
                 indent percnt header nlines))))
-   (with-current-buffer "lorum.org" (process-visible))))
+   (with-current-buffer "lorum.org" (org-histogram--processvisible))))
 
-
-;; 100 -- {root} {9770}
-;;      27 -- Galaxy {2613}
-;;          41 -- Tools {1072}
-;;              82 -- Single-Cell Related {876}
-;;               0 -- Linkage Related {4}
-;;              18 -- Unrelated {191}
-;;                   4 -- [2/2] GTF2Bed12 {7}
-;;                   3 -- [1/2] ggplot2 {6}
-;;                  38 -- [1/1] UMItools {72}
-;;                  14 -- [1/2] Interactive Notebooks {26}
-;;                  41 -- [6/6] GraphEmbed {79}
-;;          15 -- Trainings {392}
-;;           4 -- Datatypes {92}
-;;           1 -- Workflows {21}
-;;           1 -- Workflow Testing {28}
-;;          29 -- Workshops {745}
-;;           9 -- [6/6] User Requests {247}
-;;           1 -- Reviews {15}
-;;      20 -- Projects {1928}
-;;       1 -- Talks and Conferences {137}
-;;      12 -- Teaching {1186}
-;;       1 -- Recreation {97}
-;;       7 -- Productivity {661}
-;;      12 -- Papers {1179}
-;;       9 -- Home Projects {848}
-;;      12 -- Life {1140}
+(provide 'org-histogram)
+;;; org-histogram.el ends here
