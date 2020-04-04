@@ -285,6 +285,7 @@ To investigate further, expand a heading."
     ;; be read-only-mode.
     (define-key map (kbd ",") 'org-histogram-cycleusermodes-back)
     (define-key map (kbd ".") 'org-histogram-cycleusermodes-forw)
+    (define-key map (kbd "return") 'org-histogram-mode)
     map)
   "Keymap for minor mode.")
 
