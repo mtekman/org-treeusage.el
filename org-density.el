@@ -34,6 +34,9 @@
 (defvar org-density--prntalist nil)
 (defvar org-density--currentmode 'bar)
 
+(defgroup org-density nil
+  "Customization group for org-density."
+  :group 'org)
 
 (defcustom org-density-percentlevels
   '(((-9 .  1)  . ▏)
