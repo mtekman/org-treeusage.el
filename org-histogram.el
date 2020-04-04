@@ -5,7 +5,7 @@
 ;; Author: Mehmet Tekman
 ;; URL: https://github.com/mtekman/org-histogram.el
 ;; Keywords: outlines
-;; Package-Requires: ((emacs "24.3"))
+;; Package-Requires: ((emacs "26.1") (dash "2.17.0") (org "9.1.6"))
 ;; Version: 0.1
 
 ;;; License:
@@ -22,10 +22,66 @@
 
 ;;; Commentary:
 
-;;
+;; A minor mode to show the line or word density of org-mode files.
+;; The main motivation was to help in the archiving and arrangement
+;; of very large org files that might have some redundant data still
+;; in it.
 
 ;;; Code:
 (require 'org-element)
+(require 'dash)
+
+(defvar org-histogram--prntalist nil)
+
+(defvar org-histogram--formatchoices
+  '((barlinepercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
+    (barlineperc . "%1$-5s |%3$-5d|%2$5.1f%%")
+    (barlinename . "%1$s%3$-5d|%4$s")
+    (barline . "%1$s%3$d")
+    (barname . "%1$-5s |%4$s")
+    (bar . "%1$-5s")
+    (percname . "%2$5.1f%%|%4$s")
+    (perc . "%2$5.1f%%")
+    (linename . "%3$d|%4$s")
+    (line . "%3$d")
+    (custom . nil)))
+
+
+(defcustom org-histogram-percentlevels
+  '(((-9 .  1)  . ▏)
+    (( 2 . 10)  . ▎)
+    ((11 . 20)  . ▋)
+    ((21 . 30)  . █)
+    ((31 . 40)  . █▋)
+    ((41 . 50)  . ██)
+    ((51 . 60)  . ██▋)
+    ((61 . 70)  . ███)
+    ((71 . 80)  . ███▋)
+    ((81 . 90)  . ████)
+    ((91 . 110) . ████▋))
+  "Set the percentage lower and upper bands and  the corresponding symbol."
+  :type 'alist
+  :group 'org-histogram)
+
+(defcustom org-histogram-customformat  "%1$-5s--%3$d"
+  "Manually specify the format for each string.
+The format takes 4 positional arguments:
+ 1. A string representing the percentage band as set in
+    `org-histogram-percentlevels'.
+ 2. A float showing the current percentage
+ 3. An integer showing the number of lines in the section.
+ 4. A string with the name of header."
+  :type 'string
+  :group 'org-histogram)
+
+(defcustom org-histogram-formatchoice 'barlinename
+  "Choose the format line to express the density.
+Choices are a combination of bar, line, and perc.
+Or alternatively custom.
+For custom, users should set the `org-histogram-customformat' variable."
+  :options (mapcar 'car org-histogram--formatchoices)
+  :type 'symbol
+  :group 'org-histogram)
 
 (defun org-histogram--makekey (level header)
   "Generate key for hash using LEVEL and HEADER."
@@ -82,15 +138,13 @@ Percentages are not super accurate, but are a good gauge."
                (beg (+ 2 (search-backward "* " bbeg))))
           `(,head . (,beg . ,end)))))))
 
-(defvar prnt-alist nil)
-
 
 (defun org-histogram--updateparents (lvl-now previousk)
   "Get or update parent into PRNT-ALIST based on PREVIOUSK.
 From current level LVL-NOW."
   (let ((prev-lvl (car previousk))
         (prev-hdr (cdr previousk))
-        (curr-parent (car prnt-alist)))
+        (curr-parent (car org-histogram--prntalist)))
     (cond ((not prev-lvl)
            curr-parent)
           ((> lvl-now prev-lvl)
@@ -98,25 +152,25 @@ From current level LVL-NOW."
            ;; heading as the new parent at level
            (car (push
                  (org-histogram--makekey prev-lvl prev-hdr)
-                 prnt-alist)))
+                 org-histogram--prntalist)))
           ;;
           ((< lvl-now prev-lvl)
            ;; Returned to a level up. Pop all levels up to.
-           (while (>= (caar prnt-alist) lvl-now)
-             (pop prnt-alist))
-           (car prnt-alist))
+           (while (>= (caar org-histogram--prntalist) lvl-now)
+             (pop org-histogram--prntalist))
+           (car org-histogram--prntalist))
           (t curr-parent))))
 
 (defun org-histogram--processvisible ()
   "The idea is to get stats only for the visible portions of the buffer.
 To investigate further, expand a heading."
   (save-excursion
-    (setq prnt-alist nil)
+    (setq org-histogram--prntalist nil)
     (let ((hasher (make-hash-table :test 'equal))
           (prnt-curr nil)
           (prev-key nil))
       ;; Jump to beginning and parse headers
-      (push (org-histogram--makeroot hasher) prnt-alist)
+      (push (org-histogram--makeroot hasher) org-histogram--prntalist)
       ;;
       (while (org-histogram--nextmatch (point))
         (let ((info (cadr (org-element-at-point))))
@@ -144,47 +198,6 @@ To investigate further, expand a heading."
                     (setq prev-key elkey))))))))
       hasher)))
 
-(defvar format-choices
-  '((barlineperc . "%1$-5s |%3$-5d|%2$5.1f%%")
-    (barline . "%1$s%3$d")
-    (perc . "%2$5.1f%%")
-    (line . "%3$d")
-    (bar . "%1$-5s")
-    (custom . nil)))
-
-(defcustom org-histogram-percentlevels
-  '(((-9 .  1)  . ▏)
-    (( 2 . 10)  . ▎)
-    ((11 . 20)  . ▋)
-    ((21 . 30)  . █)
-    ((31 . 40)  . █▋)
-    ((41 . 50)  . ██)
-    ((51 . 60)  . ██▋)
-    ((61 . 70)  . ███)
-    ((71 . 80)  . ███▋)
-    ((81 . 90)  . ████)
-    ((91 . 110) . ████▋))
-  "Set the percentage lower and upper bands and  the corresponding symbol."
-  :type 'alist
-  :group 'org-histogram)
-
-(defcustom org-histogram-customformat  "%1$-5s--%3$d"
-  "Manually specify the format for each string.
-The format takes 3 positional arguments:
- 1. A string representing the percentage band as set in
-    `org-histogram-percentlevels'.
- 2. A float showing the current percentage
- 3. An integer showing the number of lines in the section."
-  :type 'string
-  :group 'org-histogram)
-
-(defcustom org-histogram-formatchoice 'barline
-  "Choose the format line to express the density.
-Choices are bar, line, perc, barline, barlineperc, or custom.
-For custom, users should set the `org-histogram-customformat' variable."
-  :options (mapcar 'car format-choices)
-  :type 'symbol
-  :group 'org-histogram)
 
 (defun org-histogram--removeoverlays ()
   "Remove all overlays."
@@ -198,7 +211,7 @@ For custom, users should set the `org-histogram-customformat' variable."
 
 (defun org-histogram--getformatline ()
   "Get format line, if custom, then use custom format string."
-  (or (alist-get org-histogram-formatchoice format-choices)
+  (or (alist-get org-histogram-formatchoice org-histogram--formatchoices)
       org-histogram-customformat))
 
 
@@ -211,7 +224,8 @@ For custom, users should set the `org-histogram-customformat' variable."
        (let ((bounds (plist-get info :bounds))
              (nlines (plist-get info :nlines))
              (percer (plist-get info :percent))
-             (leveln (car head)))
+             (leveln (car head))
+             (header (cdr head)))
          (if percer
              (let ((oface (intern (format "org-level-%s" leveln)))
                    (ovner (make-overlay (car bounds) (cdr bounds)))
@@ -221,11 +235,13 @@ For custom, users should set the `org-histogram-customformat' variable."
                (overlay-put ovner :org-histogram t)
                (overlay-put ovner 'face oface)
                (overlay-put ovner 'display
-                            (format lineform p-bar percer nlines))))))
+                            (format lineform p-bar percer
+                                    nlines header))))))
      (org-histogram--processvisible))))
 
+
 (defun org-histogram--printstats ()
-  "Print stats."
+  "Print stats, mostly debugging."
   (maphash
    (lambda (head info)
      (let ((indent (make-string (* 4 (car head)) ? ))
@@ -236,6 +252,20 @@ For custom, users should set the `org-histogram-customformat' variable."
         (format "\n;;%s %3.0f -- %s {%d}"
                 indent percnt header nlines))))
    (with-current-buffer "lorum.org" (org-histogram--processvisible))))
+
+
+(define-minor-mode org-histogram-mode
+  "The mode for org-histogram."
+  nil
+  "ohm"
+  nil
+  (if org-histogram-mode
+      (progn (org-histogram--setoverlays)
+             (read-only-mode t)
+             (add-hook 'org-cycle-hook 'org-histogram-do))
+    (org-histogram--removeoverlays)
+    (read-only-mode -1)
+    (remove-hook 'org-cycle-hook 'org-histogram-do)))
 
 (provide 'org-histogram)
 ;;; org-histogram.el ends here
