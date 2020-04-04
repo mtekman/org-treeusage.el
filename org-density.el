@@ -59,24 +59,24 @@
   "Fallback in case an invalid format is chosen by the user.")
 
 (defcustom org-density-formatchoices
-  '((barlinepercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
-    (barlineperc . "%1$-5s |%3$-5d|%2$5.1f%%")
-    (barlinename . "%1$s%3$-5d|%4$s")
-    (barline . "%1$s%3$d")
+  '((bardiffpercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
+    (bardiffperc . "%1$-5s |%3$-5d|%2$5.1f%%")
+    (bardiffname . "%1$s%3$-5d|%4$s")
+    (bardiff . "%1$s%3$d")
     (barname . "%1$-5s |%4$s")
     (bar . "%1$-5s")
     (percname . "%2$5.1f%%|%4$s")
     (perc . "%2$5.1f%%")
-    (linename . "%3$d|%4$s")
-    (line . "%3$d"))
+    (diffname . "%3$d|%4$s")
+    (diff . "%3$d"))
   "Specify different formats to represent the density.
 Some are given here as examples.  The first is the default used on startup.
 The format takes 4 positional arguments:
  1. A string representing the percentage band as set in
     `org-density-percentlevels'.
  2. A float showing the current percentage
- 3. An integer showing the number of lines in the section.
- 4. A string with the name of header."
+ 3. An integer showing the number of lines/chars under the headline.
+ 4. A string with the name of headline."
   :type 'alist
   :group 'org-density)
 
@@ -106,10 +106,13 @@ The format takes 4 positional arguments:
   "Generate key for hash using LEVEL and HEADER."
   (cons level header))
 
-(defun org-density--makevalues (line
-                                  &optional perc bounds)
-  "Create a value from LINE and optional PERC, BOUNDS set."
-  (list :nlines line :percent perc :bounds bounds))
+(defun org-density--makevalues (line chars
+                                     &optional pline pchars bounds)
+  "Create a plist from from LINE and CHARS.
+Use their percentages PLINE and PCHARS, and their BOUNDS."
+  (list :nlines line :nchars chars
+        :plines pline :pchars pchars
+        :bounds bounds))
 
 (defun org-density--getlineinf (info keyf)
   "Get line number for specific INFO keyword KEYF."
@@ -125,6 +128,11 @@ Percentages are not super accurate, but are a good gauge."
   (- (org-density--getlineinf info :end)
      (org-density--getlineinf info :begin)))
 
+(defun org-density--calcnchars (info)
+  "Calculate the number of chracters from INFO."
+  (- (plist-get info :end)
+     (plist-get info :begin)))
+
 (defun org-density--nextmatch (point1)
   "Get next match from current POINT1."
   (progn (org-next-visible-heading 1)
@@ -132,17 +140,21 @@ Percentages are not super accurate, but are a good gauge."
 
 (defun org-density--makeroot (hasher)
   "Perform once.  Get full bounds, and put into HASHER."
-  (let ((dline (- (progn (goto-char (point-max))
-                         (org-backward-sentence)
-                         (line-number-at-pos (point)))
-                  (progn (goto-char 0)
-                         (org-next-visible-heading 1)
-                         (line-number-at-pos (point)))))
-        (dkey (org-density--makekey 0 nil)))
-    (move-beginning-of-line 0)
-    (puthash dkey (org-density--makevalues dline) hasher)
-    dkey))
-
+  (let* ((pend (progn (goto-char (point-max))
+                      (org-backward-sentence)
+                      (point)))
+         (pbeg (progn (goto-char 0)
+                      (org-next-visible-heading 1)
+                      (point))))
+    (let ((dchar (- pend pbeg))
+          (dline (- (line-number-at-pos pend)
+                    (line-number-at-pos pbeg)))
+          (dkey (org-density--makekey 0 nil)))
+      (move-beginning-of-line 0)
+      (puthash dkey
+               (org-density--makevalues dline dchar)
+               hasher)
+      dkey)))
 
 (defsubst org-density--searchforward (header endmark)
   "Search forward for HEADER up to ENDMARK.
@@ -210,16 +222,22 @@ To investigate further, expand a heading."
                                  level prev-key))
                 ;;
                 (let ((dline (org-density--calcnlines info))
+                      (dchar (org-density--calcnchars info))
                       (elkey (org-density--makekey level
                                                      head))
                       (prnt-inf (gethash prnt-curr hasher)))
-                  (let ((percent (org-density--calcperc
-                                  dline
-                                  (plist-get prnt-inf :nlines))))
+                  (let ((percline (org-density--calcperc
+                                   dline
+                                   (plist-get prnt-inf :nlines)))
+                        (percchar (org-density--calcperc
+                                   dchar
+                                   (plist-get prnt-inf :nchars))))
                     (puthash elkey
                              (org-density--makevalues dline
-                                                        percent
-                                                        hrng)
+                                                      dchar
+                                                      percline
+                                                      percchar
+                                                      hrng)
                              hasher)
                     (setq prev-key elkey))))))))
       hasher)))
@@ -241,29 +259,46 @@ To investigate further, expand a heading."
       (progn (message "using backup format.")
              org-density--backupformat)))
 
+
+(defvar org-density--difftype 'lines
+  "Type is strictly either 'lines or 'chars.")
+
+(defun org-density-toggledifftype ()
+  "Toggle the difference mode from characters to lines."
+  (interactive)
+  (let* ((cmode org-density--difftype)
+         (nmode (if (eq cmode 'lines) 'chars 'lines)))
+    (setq org-density--difftype nmode)
+    (org-density--setoverlays)
+    (message "Type: %s" nmode)))
+
 (defun org-density--setoverlays (&optional event)
   "Set the overlays, and use optional EVENT data."
   (ignore event)
   (org-density--removeoverlays)
-  (let ((lineform (org-density--getformatline)))
+  (let ((lineform (org-density--getformatline))
+        (ntype (intern (format ":n%s" org-density--difftype)))
+        (ptype (intern (format ":p%s" org-density--difftype))))
     (maphash
      (lambda (head info)
        (let ((bounds (plist-get info :bounds))
-             (nlines (plist-get info :nlines))
-             (percer (plist-get info :percent))
+             (ndiffs (plist-get info ntype))
+             (percer (plist-get info ptype))
              (leveln (car head))
              (header (cdr head)))
+         ;; Have to choose either characters or lines at this
+         ;; point to get the correct bar.
          (if percer
              (let ((oface (intern (format "org-level-%s" leveln)))
                    (ovner (make-overlay (car bounds) (cdr bounds)))
-                   (p-bar (cdr (--first (<= (caar it) (truncate percer)
+                   (barpc (cdr (--first (<= (caar it) (truncate percer)
                                             (cdar it))
                                         org-density-percentlevels))))
                (overlay-put ovner :org-density t)
                (overlay-put ovner 'face oface)
                (overlay-put ovner 'display
-                            (format lineform p-bar percer
-                                    nlines header))))))
+                            (format lineform barpc percer
+                                    ndiffs header))))))
      (org-density--processvisible))))
 
 
@@ -288,6 +323,7 @@ To investigate further, expand a heading."
     ;; be read-only-mode.
     (define-key map (kbd ",") 'org-density-cycleusermodes-back)
     (define-key map (kbd ".") 'org-density-cycleusermodes-forw)
+    (define-key map (kbd "l") 'org-density-toggledifftype)
     (define-key map (kbd "return") 'org-density-mode)
     map)
   "Keymap for minor mode.")
