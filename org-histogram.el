@@ -1,4 +1,4 @@
-;;; org-histogram.el --- Peek the density -*- lexical-binding: t; -*-
+;;; org-histogram.el --- Examine the density of org headings -*- lexical-binding: t; -*-
 
 ;; Copright (C) 2020 Mehmet Tekman <mtekman89@gmail.com>
 
@@ -32,19 +32,7 @@
 (require 'dash)
 
 (defvar org-histogram--prntalist nil)
-
-(defvar org-histogram--formatchoices
-  '((barlinepercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
-    (barlineperc . "%1$-5s |%3$-5d|%2$5.1f%%")
-    (barlinename . "%1$s%3$-5d|%4$s")
-    (barline . "%1$s%3$d")
-    (barname . "%1$-5s |%4$s")
-    (bar . "%1$-5s")
-    (percname . "%2$5.1f%%|%4$s")
-    (perc . "%2$5.1f%%")
-    (linename . "%3$d|%4$s")
-    (line . "%3$d")
-    (custom . nil)))
+(defvar org-histogram--currentmode 'bar)
 
 
 (defcustom org-histogram-percentlevels
@@ -63,25 +51,53 @@
   :type 'alist
   :group 'org-histogram)
 
-(defcustom org-histogram-customformat  "%1$-5s--%3$d"
-  "Manually specify the format for each string.
+
+(defvar org-histogram--backupformat "%1$-5s--%3$d"
+  "Fallback in case an invalid format is chosen by the user.")
+
+(defcustom org-histogram-formatchoices
+  '((barlinepercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
+    (barlineperc . "%1$-5s |%3$-5d|%2$5.1f%%")
+    (barlinename . "%1$s%3$-5d|%4$s")
+    (barline . "%1$s%3$d")
+    (barname . "%1$-5s |%4$s")
+    (bar . "%1$-5s")
+    (percname . "%2$5.1f%%|%4$s")
+    (perc . "%2$5.1f%%")
+    (linename . "%3$d|%4$s")
+    (line . "%3$d"))
+  "Specify different formats to represent the density.
+Some are given here as examples.  The first is the default used on startup.
 The format takes 4 positional arguments:
  1. A string representing the percentage band as set in
     `org-histogram-percentlevels'.
  2. A float showing the current percentage
  3. An integer showing the number of lines in the section.
  4. A string with the name of header."
-  :type 'string
+  :type 'alist
   :group 'org-histogram)
 
-(defcustom org-histogram-formatchoice 'barlinename
-  "Choose the format line to express the density.
-Choices are a combination of bar, line, and perc.
-Or alternatively custom.
-For custom, users should set the `org-histogram-customformat' variable."
-  :options (mapcar 'car org-histogram--formatchoices)
-  :type 'symbol
-  :group 'org-histogram)
+(defun org-histogram--cycleusermodes (forw)
+  "Cycle a user defined list of formats in direction FORW."
+  (let ((oh-cm org-histogram--currentmode)
+        (oh-fm (mapcar 'car org-histogram-formatchoices))
+        (direc (if forw 1 -1)))
+    (let* ((curr-index (position oh-cm oh-fm))
+           (next-index (mod (+ curr-index direc) (length oh-fm)))
+           (next-umode (nth next-index oh-fm)))
+      (setq org-histogram--currentmode next-umode)
+      (org-histogram--setoverlays)
+      (message "Mode: %s" next-umode))))
+
+(defun org-histogram-cycleusermodes-forw ()
+  "Cycle user modes forwards."
+  (interactive)
+  (org-histogram--cycleusermodes t))
+
+(defun org-histogram-cycleusermodes-back ()
+  "Cycle user modes backwards."
+  (interactive)
+  (org-histogram--cycleusermodes nil))
 
 (defun org-histogram--makekey (level header)
   "Generate key for hash using LEVEL and HEADER."
@@ -124,6 +140,15 @@ Percentages are not super accurate, but are a good gauge."
     (puthash dkey (org-histogram--makevalues dline) hasher)
     dkey))
 
+
+(defsubst org-histogram--searchforward (header endmark)
+  "Search forward for HEADER up to ENDMARK.
+At first use shell argument, or failing that, without."
+  (let ((res (search-forward-regexp
+              (shell-quote-argument header)
+              endmark t)))
+    (or res (search-forward-regexp header endmark))))
+
 (defun org-histogram--gettitlebounds (info)
   "Get title and bounds from INFO."
   (let ((head (plist-get info :title))
@@ -132,9 +157,7 @@ Percentages are not super accurate, but are a good gauge."
     (when head
       (save-excursion
         (goto-char bbeg) ;; important
-        (let* ((end (search-forward-regexp
-                     ;; Capture: [1/1] User
-                     (shell-quote-argument head) bend))
+        (let* ((end (org-histogram--searchforward head bend))
                (beg (+ 2 (search-backward "* " bbeg))))
           `(,head . (,beg . ,end)))))))
 
@@ -211,12 +234,13 @@ To investigate further, expand a heading."
 
 (defun org-histogram--getformatline ()
   "Get format line, if custom, then use custom format string."
-  (or (alist-get org-histogram-formatchoice org-histogram--formatchoices)
-      org-histogram-customformat))
+  (or (alist-get org-histogram--currentmode org-histogram-formatchoices)
+      (progn (message "using backup format.")
+             org-histogram--backupformat)))
 
-
-(defun org-histogram--setoverlays ()
-  "Set the overlays."
+(defun org-histogram--setoverlays (&optional event)
+  "Set the overlays, and use optional EVENT data."
+  (ignore event)
   (org-histogram--removeoverlays)
   (let ((lineform (org-histogram--getformatline)))
     (maphash
@@ -254,18 +278,28 @@ To investigate further, expand a heading."
    (with-current-buffer "lorum.org" (org-histogram--processvisible))))
 
 
+
+(defvar org-histogram--modebind
+  (let ((map (make-sparse-keymap)))
+    ;; Do not inherit from parent, which would
+    ;; be read-only-mode.
+    (define-key map (kbd ",") 'org-histogram-cycleusermodes-back)
+    (define-key map (kbd ".") 'org-histogram-cycleusermodes-forw)
+    map)
+  "Keymap for minor mode.")
+
 (define-minor-mode org-histogram-mode
   "The mode for org-histogram."
   nil
   "ohm"
-  nil
+  org-histogram--modebind
   (if org-histogram-mode
-      (progn (org-histogram--setoverlays)
+      (progn (add-hook 'org-cycle-hook 'org-histogram--setoverlays)
              (read-only-mode t)
-             (add-hook 'org-cycle-hook 'org-histogram-do))
+             (org-histogram--setoverlays))
+    (remove-hook 'org-cycle-hook 'org-histogram--setoverlays)
     (org-histogram--removeoverlays)
-    (read-only-mode -1)
-    (remove-hook 'org-cycle-hook 'org-histogram-do)))
+    (read-only-mode -1)))
 
 (provide 'org-histogram)
 ;;; org-histogram.el ends here
