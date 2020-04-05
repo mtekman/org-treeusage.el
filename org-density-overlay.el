@@ -25,7 +25,10 @@
 ;; See org-density.el
 
 ;;; Code:
-(defvar org-density-overlay--hashmap nil)
+(require 'dash)
+
+(require 'org-density-cycle) ;; brings nil
+(require 'org-density-parse) ;; brings mathpos
 
 (defvar org-density-overlay--backupformat "%1$-5s--%3$d"
   "Fallback in case an invalid format is chosen by the user.")
@@ -72,7 +75,7 @@
 
 
 (defun org-density-overlay--setall (&optional regenerate)
-  "Set the overlays from the hashtable. If regenerate is passed (as is the case) when called from org-cycle-hook, then regenerate the hash table."
+  "Set the overlays from the hashtable.  If REGENERATE is passed (as is the case) when called from org-cycle-hook, then regenerate the hash table."
   (org-density-overlay--clear)
   (let ((lineform (org-density-overlay--getformatline))
         (ntype (intern (format ":n%s" org-density-cycle--difftype)))

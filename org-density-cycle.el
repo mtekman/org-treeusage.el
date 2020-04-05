@@ -5,7 +5,7 @@
 ;; Author: Mehmet Tekman
 ;; URL: https://github.com/mtekman/org-density.el
 ;; Keywords: outlines
-;; Package-Requires: ((emacs "26.1") (dash "2.17.0") (org "9.1.6"))
+;; Package-Requires: ((emacs "26.1"))
 ;; Version: 0.1
 
 ;;; License:
@@ -25,8 +25,8 @@
 ;; See org-density.el
 
 ;;; Code:
+(require 'cl-lib)
 
-;; Foreign -- setoverlays
 (defcustom org-density-cycle-formats
   '((bardiffpercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
     (bardiffperc . "%1$-5s |%3$-5d|%2$5.1f%%")

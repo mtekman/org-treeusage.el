@@ -27,14 +27,10 @@
 ;; very large org files that might have some redundant data still in it.
 
 ;;; Code:
-(require 'org-element)
-(require 'dash)
-
-(require 'org-density-cycle)
-(require 'org-density-mathpos)
+(require 'org-density-overlay)
 
 (defgroup org-density nil
-  "Customization group for org-density."
+  "Customisation group for org-density."
   :group 'org)
 
 (defun org-density--printstats ()
@@ -51,7 +47,6 @@
           (format "\n;;%s %3.0f -- %s {%d}"
                   indent percnt header ndiffs))))
      (with-current-buffer "lorum.org" (org-density-parse--processvisible)))))
-
 
 
 (defvar org-density--modebind

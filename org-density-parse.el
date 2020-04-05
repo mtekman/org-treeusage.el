@@ -25,6 +25,8 @@
 ;; See org-density.el
 
 ;;; Code:
+(require 'org-element)
+
 (require 'org-density-mathpos) ;; brings nil
 
 (defvar org-density-parse--prntalist nil)
@@ -34,7 +36,7 @@
   (cons level header))
 
 (defun org-density-parse--makevalues (line chars
-                                     &optional pline pchars bounds)
+                                           &optional pline pchars bounds)
   "Create a plist from from LINE and CHARS.
 Use their percentages PLINE and PCHARS, and their BOUNDS."
   (list :nlines line :nchars chars
@@ -90,7 +92,7 @@ From current level LVL-NOW."
 
 (defun org-density-parse--processvisible ()
   "The idea is to get stats only for the visible portions of the buffer.
-To investigate further, expand a heading. Updates `org-density--hashmap'."
+To investigate further, expand a heading.  Updates `org-density--hashmap'."
   (save-excursion
     (setq org-density-parse--prntalist nil)
     (let ((hasher (make-hash-table :test 'equal))
@@ -113,7 +115,7 @@ To investigate further, expand a heading. Updates `org-density--hashmap'."
                 (let ((dline (org-density-mathpos--calcnlines info))
                       (dchar (org-density-mathpos--calcnchars info))
                       (elkey (org-density-parse--makekey level
-                                                     head))
+                                                         head))
                       (prnt-inf (gethash prnt-curr hasher)))
                   (let ((percline (org-density-mathpos--calcperc
                                    dline
@@ -123,10 +125,10 @@ To investigate further, expand a heading. Updates `org-density--hashmap'."
                                    (plist-get prnt-inf :nchars))))
                     (puthash elkey
                              (org-density-parse--makevalues dline
-                                                      dchar
-                                                      percline
-                                                      percchar
-                                                      hrng)
+                                                            dchar
+                                                            percline
+                                                            percchar
+                                                            hrng)
                              hasher)
                     (setq prev-key elkey))))))))
       (setq org-density--hashmap hasher))))
