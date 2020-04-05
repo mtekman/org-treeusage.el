@@ -73,5 +73,8 @@
     (org-density-overlay--clear)
     (read-only-mode -1)))
 
+
+(add-hook 'org-density-cycle--publichook 'org-density-overlay--setall)
+
 (provide 'org-density)
 ;;; org-density.el ends here

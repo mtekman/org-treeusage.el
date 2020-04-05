@@ -54,6 +54,13 @@ The format takes 4 positional arguments:
 (defvar org-density-cycle--difftype 'lines
   "Type is strictly either 'lines or 'chars.")
 
+(defvar org-density-cycle--publichook nil
+  "Hook to run at the end of an interactive function.")
+
+(defun org-density-cycle--runpublichook ()
+  "Run the public finish hook, overlay."
+  (run-hooks 'org-density-cycle--publichook))
+
 (defun org-density-cycle--usermodes (forw)
   "Cycle a user defined list of formats in direction FORW."
   (let ((oh-cm org-density-cycle--currentmode)
@@ -63,7 +70,7 @@ The format takes 4 positional arguments:
            (next-index (mod (+ curr-index direc) (length oh-fm)))
            (next-umode (nth next-index oh-fm)))
       (setq org-density-cycle--currentmode next-umode)
-      (org-density-overlay--setall) ;; TODO Find a way to turn this into an exit hook.
+      (org-density-cycle--runpublichook)
       (message "Mode: %s" next-umode))))
 
 (defun org-density-cycle-modeforward ()
@@ -83,7 +90,7 @@ The format takes 4 positional arguments:
   (let* ((cmode org-density-cycle--difftype)
          (nmode (if (eq cmode 'lines) 'chars 'lines)))
     (setq org-density-cycle--difftype nmode)
-    (org-density-overlay--setall)
+    (org-density-cycle--runpublichook)
     (message "Type: %s" nmode)))
 
 
