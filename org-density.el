@@ -201,9 +201,9 @@ From current level LVL-NOW."
            (car org-density--prntalist))
           (t curr-parent))))
 
-(defun org-density--processvisible ()
+(defun org-density--parsevisible ()
   "The idea is to get stats only for the visible portions of the buffer.
-To investigate further, expand a heading."
+To investigate further, expand a heading. Updates `org-density--hashmap'."
   (save-excursion
     (setq org-density--prntalist nil)
     (let ((hasher (make-hash-table :test 'equal))
@@ -242,7 +242,7 @@ To investigate further, expand a heading."
                                                       hrng)
                              hasher)
                     (setq prev-key elkey))))))))
-      hasher)))
+      (setq org-density--hashmap hasher))))
 
 
 (defun org-density--removeoverlays ()
@@ -274,9 +274,17 @@ To investigate further, expand a heading."
     (org-density--setoverlays)
     (message "Type: %s" nmode)))
 
-(defun org-density--setoverlays (&optional event)
-  "Set the overlays, and use optional EVENT data."
-  (ignore event)
+(defvar org-density--hashmap nil)
+
+(defun org-density--gethashmap (&optional regenerate)
+  "Retrieve or generate hashmap. If REGENERATE, then re-parse"
+  (when regenerate
+    (message "Regenerating")
+    (org-density--parsevisible))
+  org-density--hashmap)
+
+(defun org-density--setoverlays (&optional usecache)
+  "Set the overlays from the hashtable. If USECACHE is passed (as is the case) when called from org-cycle-hook, then do not regenerate the hash table."
   (org-density--removeoverlays)
   (let ((lineform (org-density--getformatline))
         (ntype (intern (format ":n%s" org-density--difftype)))
@@ -301,21 +309,23 @@ To investigate further, expand a heading."
                (overlay-put ovner 'display
                             (format lineform barpc percer
                                     ndiffs header))))))
-     (org-density--processvisible))))
+     (org-density--gethashmap usecache))))
 
 
 (defun org-density--printstats ()
   "Print stats, mostly debugging."
-  (maphash
-   (lambda (head info)
-     (let ((indent (make-string (* 4 (car head)) ? ))
-           (header (or (cdr head) "{root}"))
-           (nlines (or (plist-get info :nlines) 0))
-           (percnt (or (plist-get info :percent) 100)))
-       (insert
-        (format "\n;;%s %3.0f -- %s {%d}"
-                indent percnt header nlines))))
-   (with-current-buffer "lorum.org" (org-density--processvisible))))
+  (let ((ntype (intern (format ":n%s" org-density--difftype)))
+        (ptype (intern (format ":p%s" org-density--difftype))))
+    (maphash
+     (lambda (head info)
+       (let ((indent (make-string (* 4 (car head)) ? ))
+             (header (or (cdr head) "{root}"))
+             (ndiffs (or (plist-get info ntype) 0))
+             (percnt (or (plist-get info ptype) 100)))
+         (insert
+          (format "\n;;%s %3.0f -- %s {%d}"
+                  indent percnt header ndiffs))))
+     (with-current-buffer "lorum.org" (org-density--parsevisible)))))
 
 
 
