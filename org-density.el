@@ -162,7 +162,8 @@ At first use shell argument, or failing that, without."
   (let ((res (search-forward-regexp
               (shell-quote-argument header)
               endmark t)))
-    (or res (search-forward-regexp header endmark))))
+    ;; no regex if it fails
+    (or res (search-forward header endmark))))
 
 (defun org-density--gettitlebounds (info)
   "Get title and bounds from INFO."
@@ -173,7 +174,8 @@ At first use shell argument, or failing that, without."
       (save-excursion
         (goto-char bbeg) ;; important
         (let* ((end (org-density--searchforward head bend))
-               (beg (+ 2 (search-backward "* " bbeg))))
+               (beg (progn (search-backward-regexp "^\\*+ " bbeg)
+                           (match-end 0))))
           `(,head . (,beg . ,end)))))))
 
 
