@@ -85,7 +85,7 @@
                    (ovner (make-overlay (car bounds) (cdr bounds)))
                    (barpc (cdr (--first (<= (caar it) (truncate percer)
                                             (cdar it))
-                                        org-density-cycle-formats))))
+                                        org-density-overlay-percentlevels))))
                (overlay-put ovner :org-density t)
                (overlay-put ovner 'face oface)
                (overlay-put ovner 'display

@@ -36,7 +36,8 @@
 
 (defun org-density-parse--gethashmap (&optional regenerate)
   "Retrieve or generate hashmap.  If REGENERATE, then re-parse."
-  (when regenerate
+  (when (or regenerate
+            (not org-density-parse--hashmap))
     (message "Regenerating")
     (org-density-parse--processvisible))
   org-density-parse--hashmap)
