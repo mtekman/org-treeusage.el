@@ -55,15 +55,6 @@
       (progn (message "using backup format.")
              org-density-overlay--backupformat)))
 
-
-(defun org-density-overlay--gethashmap (&optional regenerate)
-  "Retrieve or generate hashmap. If REGENERATE, then re-parse"
-  (when regenerate
-    (message "Regenerating")
-    (org-density-parse--processvisible))
-  org-density-overlay--hashmap)
-
-
 (defun org-density-overlay--clear ()
   "Remove all overlays."
   (let ((ovs (overlays-in (point-min) (point-max))))

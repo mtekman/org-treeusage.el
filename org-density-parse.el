@@ -29,7 +29,18 @@
 
 (require 'org-density-mathpos) ;; brings nil
 
+
 (defvar org-density-parse--prntalist nil)
+
+(defvar org-density-parse--hashmap nil)
+
+(defun org-density-parse--gethashmap (&optional regenerate)
+  "Retrieve or generate hashmap.  If REGENERATE, then re-parse."
+  (when regenerate
+    (message "Regenerating")
+    (org-density-parse--processvisible))
+  org-density-parse--hashmap)
+
 
 (defun org-density-parse--makekey (level header)
   "Generate key for hash using LEVEL and HEADER."
