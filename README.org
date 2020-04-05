@@ -20,7 +20,7 @@ Install from MELPA or using =use-package=:
 
 ** Usage
 
-Enable =org-density-mode= and press either =,= / =.= to cycle either backwards / forwards between the different the org-density line formats (see below).
+Enable =org-density-mode= and press either =COMMA= / =DOT= to cycle either backwards / forwards between the different the org-density line formats (see below).
 
 By default the mode measures percentage of content by the number of lines in each headline, but this can be toggled to measure number of characters by pressing =l=.
 
@@ -74,5 +74,5 @@ The names are descriptive but arbitrary, and users can append their own to the  
  3. An integer showing the number of lines or characters in the headline content.
  4. A string with the actual name of the headline.
 
-Please consult the in-built help `C-h f RET format` for more information on how to represent these values.
+Please consult the in-built help =C-h f RET format= for more information on how to represent these values.
 
