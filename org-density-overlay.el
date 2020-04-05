@@ -1,6 +1,6 @@
 ;;; org-density-overlay.el --- Overlay library -*- lexical-binding: t; -*-
 
-;; Copright (C) 2020 Mehmet Tekman <mtekman89@gmail.com>
+;; Copyright (C) 2020 Mehmet Tekman <mtekman89@gmail.com>
 
 ;; Author: Mehmet Tekman
 ;; URL: https://github.com/mtekman/org-density.el
