@@ -33,29 +33,6 @@
 (defvar org-density-cycle--difftype 'lines
   "Type is strictly either 'lines or 'chars.")
 
-(defcustom org-density-cycle-formats
-  '((bardiffpercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
-    (bardiffperc . "%1$-5s |%3$-5d|%2$5.1f%%")
-    (bardiffname . "%1$s%3$-5d|%4$s")
-    (bardiff . "%1$s%3$d")
-    (barname . "%1$-5s |%4$s")
-    (bar . "%1$-5s")
-    (percname . "%2$5.1f%%|%4$s")
-    (perc . "%2$5.1f%%")
-    (diffname . "%3$d|%4$s")
-    (diff . "%3$d"))
-  "Specify different formats to represent the density.
-Some are given here as examples.  The first is the default used on startup.
-The format takes 4 positional arguments:
- 1. A string representing the percentage band as set in
-    `org-density-percentlevels'.
- 2. A float showing the current percentage
- 3. An integer showing the number of lines/chars under the headline.
- 4. A string with the name of headline."
-  :type 'alist
-  :group 'org-density)
-
-
 (defun org-density-cycle--usermodes (forw)
   "Cycle a user defined list of formats in direction FORW."
   (let ((oh-cm org-density-cycle--currentmode)
@@ -65,7 +42,7 @@ The format takes 4 positional arguments:
            (next-index (mod (+ curr-index direc) (length oh-fm)))
            (next-umode (nth next-index oh-fm)))
       (setq org-density-cycle--currentmode next-umode)
-      (org-density--setoverlays)
+      (org-density-overlay--setall) ;; TODO Find a way to turn this into an exit hook.
       (message "Mode: %s" next-umode))))
 
 (defun org-density-cycle-modeforward ()
@@ -78,14 +55,16 @@ The format takes 4 positional arguments:
   (interactive)
   (org-density-cycle--usermodes nil))
 
+
 (defun org-density-cycle-toggletype ()
   "Toggle the difference mode from characters to lines."
   (interactive)
   (let* ((cmode org-density-cycle--difftype)
          (nmode (if (eq cmode 'lines) 'chars 'lines)))
     (setq org-density-cycle--difftype nmode)
-    (org-density--setoverlays)
+    (org-density-overlay--setall)
     (message "Type: %s" nmode)))
+
 
 (provide 'org-density-cycle)
 ;;; org-density-cycle.el ends here
