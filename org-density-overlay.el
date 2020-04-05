@@ -30,29 +30,6 @@
 (defvar org-density-overlay--backupformat "%1$-5s--%3$d"
   "Fallback in case an invalid format is chosen by the user.")
 
-(defcustom org-density-overlay-formats
-  '((bardiffpercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
-    (bardiffperc . "%1$-5s |%3$-5d|%2$5.1f%%")
-    (bardiffname . "%1$s%3$-5d|%4$s")
-    (bardiff . "%1$s%3$d")
-    (barname . "%1$-5s |%4$s")
-    (bar . "%1$-5s")
-    (percname . "%2$5.1f%%|%4$s")
-    (perc . "%2$5.1f%%")
-    (diffname . "%3$d|%4$s")
-    (diff . "%3$d"))
-  "Specify different formats to represent the density.
-Some are given here as examples.  The first is the default used on startup.
-The format takes 4 positional arguments:
- 1. A string representing the percentage band as set in
-    `org-density-percentlevels'.
- 2. A float showing the current percentage
- 3. An integer showing the number of lines/chars under the headline.
- 4. A string with the name of headline."
-  :type 'alist
-  :group 'org-density)
-
-
 (defcustom org-density-overlay-percentlevels
   '(((-9 .  1)  . ▏)
     (( 2 . 10)  . ▎)
@@ -71,7 +48,7 @@ The format takes 4 positional arguments:
 
 (defun org-density-overlay--getformatline ()
   "Get format line, if custom, then use custom format string."
-  (or (alist-get org-density-cycle--currentmode org-density-overlay-formats)
+  (or (alist-get org-density-cycle--currentmode org-density-cycle-formats)
       (progn (message "using backup format.")
              org-density-overlay--backupformat)))
 
@@ -114,7 +91,7 @@ The format takes 4 positional arguments:
                    (ovner (make-overlay (car bounds) (cdr bounds)))
                    (barpc (cdr (--first (<= (caar it) (truncate percer)
                                             (cdar it))
-                                        org-density-overlay-percentlevels))))
+                                        org-density-cycle-formats))))
                (overlay-put ovner :org-density t)
                (overlay-put ovner 'face oface)
                (overlay-put ovner 'display
