@@ -1,0 +1,74 @@
+#+TITLE: org-density.el
+
+#+HTML: <a href="https://melpa.org/#/org-density"><img src="https://melpa.org/packages/org-density-badge.svg"></a> <a href="https://stable.melpa.org/#/org-density"><img src="https://stable.melpa.org/packages/org-density-badge.svg"></a>
+
+This library provides a minor mode for peeking at the line or character density of each heading in and org-mode file, allowing users with large org files to see the distribution of heading content and make informed decisions on where to prune, refile, or archive.
+
+
+** Installation
+
+Install from MELPA or using =use-package=:
+
+   #+begin_src elisp
+     (use-package org-density
+       :bind ("C-c d" . org-density-mode))
+   #+end_src
+
+** Usage
+
+Enable =org-density-mode= and press either =,= / =.= to cycle either backwards / forwards between the different the org-density line formats (see below).
+
+By default the mode measures percentage of content by the number of lines in each headline, but this can be toggled to measure number of characters by pressing =l=.
+
+(The differences between measuring line or character are not drastic, but could be useful.)
+
+
+** Customisation
+
+***** Percentage Bands
+
+The percentage of the contributing content of the current heading divided by the parent is represented by a symbol that maps to one of the percentage bands given by =org-density-overlay-percentlevels=. 
+
+#+begin_src elisp
+      '(((-9 .  1)  . ▏)
+        (( 2 . 10)  . ▎)
+        ((11 . 20)  . ▋)
+        ((21 . 30)  . █)
+        ((31 . 40)  . █▋)
+        ((41 . 50)  . ██)
+        ((51 . 60)  . ██▋)
+        ((61 . 70)  . ███)
+        ((71 . 80)  . ███▋)
+        ((81 . 90)  . ████)
+        ((91 . 110) . ████▋))
+#+end_src
+
+
+By default there 11 bands each assigned vertical bar symbols that increase with the percentage band, but there could ultimately be any number of bands representing any symbols the user desires. The bands should /ideally/ not overlap, but it is not a strict requirement, where the first matching band is returned.
+
+***** Line Formats
+
+There are 10 different line formats provided in the =org-density-cycle-format= variable, each providing a different sub-selection of titles and metrics to show to the user -- usually a different permutation of four different variables manipulated in format control strings, to represent the percentage /bar/, the percentage amount /perc/, the absolute content amount /diff/, and the headline name /name/.
+
+#+begin_src elisp
+  '((bardiffpercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
+    (bardiffperc . "%1$-5s |%3$-5d|%2$5.1f%%")
+    (bardiffname . "%1$s%3$-5d|%4$s")
+    (bardiff . "%1$s%3$d")
+    (barname . "%1$-5s |%4$s")
+    (bar . "%1$-5s")
+    (percname . "%2$5.1f%%|%4$s")
+    (perc . "%2$5.1f%%")
+    (diffname . "%3$d|%4$s")
+    (diff . "%3$d"))
+#+end_src
+
+The names are descriptive but arbitrary, and users can append their own to the  =org-density-cycle-format= variable. The value of each pair describes:
+
+ 1. A string representing the percentage band of headline (as explained in the previous subsection).
+ 2. A float representing the actual current percentage of the headline.
+ 3. An integer showing the number of lines or characters in the headline content.
+ 4. A string with the actual name of the headline.
+
+Please consult the in-built help `C-h f RET format` for more information on how to represent these values.
+

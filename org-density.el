@@ -63,7 +63,7 @@
 (define-minor-mode org-density-mode
   "The mode for org-density."
   nil
-  "ohm"
+  " Ð"
   org-density--modebind
   (if org-density-mode
       (progn (add-hook 'org-cycle-hook 'org-density-overlay--setall)
