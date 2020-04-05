@@ -22,17 +22,18 @@
 
 ;;; Commentary:
 
-;; A minor mode to show the line or word density of org-mode files.
-;; The main motivation was to help in the archiving and arrangement
-;; of very large org files that might have some redundant data still
-;; in it.
+;; A minor mode to show the line or character density of org-mode files.
+;; The main motivation was to help in the archiving and arrangement of
+;; very large org files that might have some redundant data still in it.
 
 ;;; Code:
 (require 'org-element)
 (require 'dash)
 
+(require 'org-density-cycle)
+
 (defvar org-density--prntalist nil)
-(defvar org-density--currentmode 'bar)
+
 
 (defgroup org-density nil
   "Customization group for org-density."
@@ -57,50 +58,6 @@
 
 (defvar org-density--backupformat "%1$-5s--%3$d"
   "Fallback in case an invalid format is chosen by the user.")
-
-(defcustom org-density-formatchoices
-  '((bardiffpercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
-    (bardiffperc . "%1$-5s |%3$-5d|%2$5.1f%%")
-    (bardiffname . "%1$s%3$-5d|%4$s")
-    (bardiff . "%1$s%3$d")
-    (barname . "%1$-5s |%4$s")
-    (bar . "%1$-5s")
-    (percname . "%2$5.1f%%|%4$s")
-    (perc . "%2$5.1f%%")
-    (diffname . "%3$d|%4$s")
-    (diff . "%3$d"))
-  "Specify different formats to represent the density.
-Some are given here as examples.  The first is the default used on startup.
-The format takes 4 positional arguments:
- 1. A string representing the percentage band as set in
-    `org-density-percentlevels'.
- 2. A float showing the current percentage
- 3. An integer showing the number of lines/chars under the headline.
- 4. A string with the name of headline."
-  :type 'alist
-  :group 'org-density)
-
-(defun org-density--cycleusermodes (forw)
-  "Cycle a user defined list of formats in direction FORW."
-  (let ((oh-cm org-density--currentmode)
-        (oh-fm (mapcar 'car org-density-formatchoices))
-        (direc (if forw 1 -1)))
-    (let* ((curr-index (position oh-cm oh-fm))
-           (next-index (mod (+ curr-index direc) (length oh-fm)))
-           (next-umode (nth next-index oh-fm)))
-      (setq org-density--currentmode next-umode)
-      (org-density--setoverlays)
-      (message "Mode: %s" next-umode))))
-
-(defun org-density-cycleusermodes-forw ()
-  "Cycle user modes forwards."
-  (interactive)
-  (org-density--cycleusermodes t))
-
-(defun org-density-cycleusermodes-back ()
-  "Cycle user modes backwards."
-  (interactive)
-  (org-density--cycleusermodes nil))
 
 (defun org-density--makekey (level header)
   "Generate key for hash using LEVEL and HEADER."
@@ -257,22 +214,10 @@ To investigate further, expand a heading. Updates `org-density--hashmap'."
 
 (defun org-density--getformatline ()
   "Get format line, if custom, then use custom format string."
-  (or (alist-get org-density--currentmode org-density-formatchoices)
+  (or (alist-get org-density-cycle--currentmode org-density-cycle-formats)
       (progn (message "using backup format.")
              org-density--backupformat)))
 
-
-(defvar org-density--difftype 'lines
-  "Type is strictly either 'lines or 'chars.")
-
-(defun org-density-toggledifftype ()
-  "Toggle the difference mode from characters to lines."
-  (interactive)
-  (let* ((cmode org-density--difftype)
-         (nmode (if (eq cmode 'lines) 'chars 'lines)))
-    (setq org-density--difftype nmode)
-    (org-density--setoverlays)
-    (message "Type: %s" nmode)))
 
 (defvar org-density--hashmap nil)
 
@@ -287,8 +232,8 @@ To investigate further, expand a heading. Updates `org-density--hashmap'."
   "Set the overlays from the hashtable. If USECACHE is passed (as is the case) when called from org-cycle-hook, then do not regenerate the hash table."
   (org-density--removeoverlays)
   (let ((lineform (org-density--getformatline))
-        (ntype (intern (format ":n%s" org-density--difftype)))
-        (ptype (intern (format ":p%s" org-density--difftype))))
+        (ntype (intern (format ":n%s" org-density-cycle--difftype)))
+        (ptype (intern (format ":p%s" org-density-cycle--difftype))))
     (maphash
      (lambda (head info)
        (let ((bounds (plist-get info :bounds))
@@ -314,8 +259,8 @@ To investigate further, expand a heading. Updates `org-density--hashmap'."
 
 (defun org-density--printstats ()
   "Print stats, mostly debugging."
-  (let ((ntype (intern (format ":n%s" org-density--difftype)))
-        (ptype (intern (format ":p%s" org-density--difftype))))
+  (let ((ntype (intern (format ":n%s" org-density-cycle--difftype)))
+        (ptype (intern (format ":p%s" org-density-cycle--difftype))))
     (maphash
      (lambda (head info)
        (let ((indent (make-string (* 4 (car head)) ? ))
@@ -333,9 +278,9 @@ To investigate further, expand a heading. Updates `org-density--hashmap'."
   (let ((map (make-sparse-keymap)))
     ;; Do not inherit from parent, which would
     ;; be read-only-mode.
-    (define-key map (kbd ",") 'org-density-cycleusermodes-back)
-    (define-key map (kbd ".") 'org-density-cycleusermodes-forw)
-    (define-key map (kbd "l") 'org-density-toggledifftype)
+    (define-key map (kbd ",") 'org-density-cycle-modebackward)
+    (define-key map (kbd ".") 'org-density-cycle-modeforward)
+    (define-key map (kbd "l") 'org-density-cycle-toggletype)
     (define-key map (kbd "return") 'org-density-mode)
     map)
   "Keymap for minor mode.")
