@@ -142,7 +142,7 @@ To investigate further, expand a heading.  Updates `org-density--hashmap'."
                                                             hrng)
                              hasher)
                     (setq prev-key elkey))))))))
-      (setq org-density--hashmap hasher))))
+      (setq org-density-parse--hashmap hasher))))
 
 
 (provide 'org-density-parse)

@@ -66,7 +66,7 @@ The format takes 4 positional arguments:
   (let ((oh-cm org-density-cycle--currentmode)
         (oh-fm (mapcar 'car org-density-cycle-formats))
         (direc (if forw 1 -1)))
-    (let* ((curr-index (position oh-cm oh-fm))
+    (let* ((curr-index (cl-position oh-cm oh-fm))
            (next-index (mod (+ curr-index direc) (length oh-fm)))
            (next-umode (nth next-index oh-fm)))
       (setq org-density-cycle--currentmode next-umode)
