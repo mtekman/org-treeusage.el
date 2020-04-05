@@ -2,7 +2,7 @@
 
 #+HTML: <a href="https://melpa.org/#/org-density"><img src="https://melpa.org/packages/org-density-badge.svg"></a> <a href="https://stable.melpa.org/#/org-density"><img src="https://stable.melpa.org/packages/org-density-badge.svg"></a>
 
-This library provides a minor mode for peeking at the line or character density of each heading in and org-mode file, allowing users with large org files to see the distribution of heading content and make informed decisions on where to prune, refile, or archive.
+This library provides a minor mode for peeking at the line or character density of each heading in an org-mode file, allowing users with large org files to see the distribution of heading content and make informed decisions on where to prune, refile, or archive.
 
 #+HTML: <img src="https://user-images.githubusercontent.com/20641402/78510624-ef313280-7796-11ea-8260-23dd65ebf751.gif" />
 
@@ -24,7 +24,7 @@ Enable =org-density-mode= and press either =COMMA= / =DOT= to cycle either backw
 
 By default the mode measures percentage of content by the number of lines in each headline, but this can be toggled to measure number of characters by pressing =l=.
 
-(The differences between measuring line or character are not drastic, but could be useful.)
+/The differences between measuring line or character are not drastic, but could be useful./
 
 
 ** Customisation
