@@ -29,12 +29,12 @@
 
 (defvar org-density-parse--prntalist nil
   "List of (level . heading) parent nodes.
-Popped from and pushed to as the org file is parsed.")
+Popped from and pushed to, as the org file is parsed.")
 
 (defvar org-density-parse--hashmap nil)
 
 (defun org-density-parse--gethashmap (&optional regenerate)
-  "Retrieve or generate hashmap.  If REGENERATE, then re-parse."
+  "Retrieve or generate hashmap.  If REGENERATE, then re-parse the buffer."
   (when (or regenerate
             (not org-density-parse--hashmap))
     (message "Regenerating")
@@ -43,7 +43,7 @@ Popped from and pushed to as the org file is parsed.")
 
 
 (defun org-density-parse--gettitlebounds (info)
-  "Get title and bounds from INFO."
+  "Get header title and the bounding positions from org element INFO."
   (let ((head (plist-get info :title))
         (bend (plist-get info :contents-begin))
         (bbeg (line-beginning-position)))
@@ -60,7 +60,7 @@ Popped from and pushed to as the org file is parsed.")
 
 
 (defun org-density-parse--makeroot (hashmap)
-  "Make the root (level . heading) node, by getting the full bounds of the whole org file, and insert into the HASHMAP."
+  "Generate the initial root parent node by getting the full bounds of the whole org file and inserting them into the HASHMAP."
   (let* ((pend (progn (goto-char (point-max))
                       (org-backward-sentence)
                       (point)))
@@ -81,8 +81,7 @@ Popped from and pushed to as the org file is parsed.")
 
 
 (defun org-density-parse--updateparents (lvl-now previousk)
-  "Get or update parent into PRNT-ALIST based on PREVIOUSK.
-From current level LVL-NOW."
+  "Get the parent of the current node at LVL-NOW, and update the parent if the current node deviates from the previous node PREVIOUSK."
   (let ((prev-lvl (car previousk))
         (prev-hdr (cdr previousk))
         (curr-parent (car org-density-parse--prntalist)))
@@ -102,8 +101,7 @@ From current level LVL-NOW."
           (t curr-parent))))
 
 (defun org-density-parse--processvisible ()
-  "The idea is to get stats only for the visible portions of the buffer.
-To investigate further, expand a heading.  Updates `org-density--hashmap'."
+  "Parse the visible org headings in the current buffer, and collect information at each heading/node about number of lines, characters, and their percentages wrt the parent node.  The variable `org-density-parse--hashmap' is updated to the hashmap generated here."
   (save-excursion
     (setq org-density-parse--prntalist nil)
     (let ((hasher (make-hash-table :test 'equal))

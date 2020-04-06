@@ -49,20 +49,21 @@ The format takes 4 positional arguments:
   :type 'alist
   :group 'org-density)
 
-(defvar org-density-cycle--currentmode 'bar)
+(defvar org-density-cycle--currentmode 'bar
+  "Current line format.  Default is bar.")
 
 (defvar org-density-cycle--difftype 'lines
-  "Type is strictly either 'lines or 'chars.")
+  "Current diff type.  Strictly either 'lines or 'chars.")
 
 (defvar org-density-cycle--publichook nil
   "Hook to run at the end of an interactive function.")
 
 (defun org-density-cycle--runpublichook ()
-  "Run the public finish hook, overlay."
+  "Run the public finish hook."
   (run-hooks 'org-density-cycle--publichook))
 
 (defun org-density-cycle--usermodes (forw)
-  "Cycle a user defined list of formats in direction FORW."
+  "Cycle line formats forward if FORW, otherwise backwards."
   (let* ((oh-cm org-density-cycle--currentmode)
          (oh-fm (mapcar 'car org-density-cycle-formats))
          (direc (if forw 1 -1))
@@ -74,18 +75,18 @@ The format takes 4 positional arguments:
     (message "Mode: %s" next-umode)))
 
 (defun org-density-cycle-modeforward ()
-  "Cycle user modes forwards."
+  "Cycle line formats forwards."
   (interactive)
   (org-density-cycle--usermodes t))
 
 (defun org-density-cycle-modebackward ()
-  "Cycle user modes backwards."
+  "Cycle line formats backwards."
   (interactive)
   (org-density-cycle--usermodes nil))
 
 
 (defun org-density-cycle-toggletype ()
-  "Toggle the difference mode from characters to lines."
+  "Toggle the diff type from characters to lines."
   (interactive)
   (let* ((cmode org-density-cycle--difftype)
          (nmode (if (eq cmode 'lines) 'chars 'lines)))

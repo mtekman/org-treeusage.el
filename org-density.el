@@ -34,7 +34,8 @@
   :group 'org)
 
 (defun org-density--printstats ()
-  "Print stats, mostly debugging."
+  "Print stats for each heading, indenting at every level.
+Useful mostly for debugging."
   (let ((ntype (intern (format ":n%s" org-density-cycle--difftype)))
         (ptype (intern (format ":p%s" org-density-cycle--difftype)))
         (neubff (get-buffer-create "org-density-summary.txt")))
@@ -62,7 +63,7 @@
   "Keymap for minor mode.")
 
 (define-minor-mode org-density-mode
-  "The mode for org-density."
+  "The minor mode for org-density."
   nil
   " ɗʋ"
   org-density--modebind

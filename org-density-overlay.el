@@ -30,7 +30,7 @@
 (require 'org-density-parse) ;; brings
 
 (defvar org-density-overlay--backupformat "%1$-5s--%3$d"
-  "Fallback in case an invalid format is chosen by the user.")
+  "Fallback in case an invalid line format is chosen by the user.")
 
 (defcustom org-density-overlay-percentlevels
   '(((-9 .  1)  . ▏)
@@ -44,12 +44,13 @@
     ((71 . 80)  . ███▋)
     ((81 . 90)  . ████)
     ((91 . 110) . ████▋))
-  "Set the percentage lower and upper bands and  the corresponding symbol."
+  "Set the percentage lower and upper bands and the corresponding symbol.
+Format is ((lower . upper) . symbol) and bands are allowed to overlap."
   :type 'alist
   :group 'org-density)
 
 (defun org-density-overlay--getformatline ()
-  "Get format line, if custom, then use custom format string."
+  "Get the line format, or use the backup one."
   (or (alist-get org-density-cycle--currentmode org-density-cycle-formats)
       (progn (message "using backup format.")
              org-density-overlay--backupformat)))
@@ -65,7 +66,7 @@
 
 
 (defun org-density-overlay--setall (&optional regenerate)
-  "Set the overlays from the hashtable.  If REGENERATE is passed (as is the case) when called from org-cycle-hook, then regenerate the hash table."
+  "Set all overlays.  If REGENERATE is passed (as is the case) when called from org-cycle-hook, then regenerate the hash table."
   (org-density-overlay--clear)
   (let ((lineform (org-density-overlay--getformatline))
         (ntype (intern (format ":n%s" org-density-cycle--difftype)))
