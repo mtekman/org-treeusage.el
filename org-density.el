@@ -5,8 +5,8 @@
 ;; Author: Mehmet Tekman
 ;; URL: https://github.com/mtekman/org-density.el
 ;; Keywords: outlines
-;; Package-Requires: ((emacs "26.1") (dash "2.17.0") (org "9.1.6"))
-;; Version: 0.1
+;; Package-Requires: ((emacs "26.1") (org "9.1.6"))
+;; Version: 0.2
 
 ;;; License:
 
@@ -36,23 +36,24 @@
 (defun org-density--printstats ()
   "Print stats, mostly debugging."
   (let ((ntype (intern (format ":n%s" org-density-cycle--difftype)))
-        (ptype (intern (format ":p%s" org-density-cycle--difftype))))
+        (ptype (intern (format ":p%s" org-density-cycle--difftype)))
+        (neubff (get-buffer-create "org-density-summary.txt")))
     (maphash
      (lambda (head info)
        (let ((indent (make-string (* 4 (car head)) ? ))
              (header (or (cdr head) "{root}"))
              (ndiffs (or (plist-get info ntype) 0))
              (percnt (or (plist-get info ptype) 100)))
-         (insert
-          (format "\n;;%s %3.0f -- %s {%d}"
-                  indent percnt header ndiffs))))
-     (with-current-buffer "lorum.org" (org-density-parse--processvisible)))))
+         (with-current-buffer neubff
+           (insert
+            (format "\n;;%s %3.0f -- %s {%d}"
+                    indent percnt header ndiffs)))))
+     (org-density-parse--processvisible))))
 
 
 (defvar org-density--modebind
   (let ((map (make-sparse-keymap)))
-    ;; Do not inherit from parent, which would
-    ;; be read-only-mode.
+    ;; Don't inherit from parent (read-only-mode)
     (define-key map (kbd ",") 'org-density-cycle-modebackward)
     (define-key map (kbd ".") 'org-density-cycle-modeforward)
     (define-key map (kbd "l") 'org-density-cycle-toggletype)
@@ -63,7 +64,7 @@
 (define-minor-mode org-density-mode
   "The mode for org-density."
   nil
-  " Ð"
+  " ɗʋ"
   org-density--modebind
   (if org-density-mode
       (progn (add-hook 'org-cycle-hook 'org-density-overlay--setall)

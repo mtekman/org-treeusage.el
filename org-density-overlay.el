@@ -6,7 +6,7 @@
 ;; URL: https://github.com/mtekman/org-density.el
 ;; Keywords: outlines
 ;; Package-Requires: ((emacs "26.1") (dash "2.17.0") (org "9.1.6"))
-;; Version: 0.1
+;; Version: 0.2
 
 ;;; License:
 
@@ -26,9 +26,8 @@
 
 ;;; Code:
 (require 'dash)
-
 (require 'org-density-cycle) ;; brings nil
-(require 'org-density-parse) ;; brings mathpos
+(require 'org-density-parse) ;; brings
 
 (defvar org-density-overlay--backupformat "%1$-5s--%3$d"
   "Fallback in case an invalid format is chosen by the user.")
@@ -83,14 +82,14 @@
          (if percer
              (let ((oface (intern (format "org-level-%s" leveln)))
                    (ovner (make-overlay (car bounds) (cdr bounds)))
-                   (barpc (cdr (--first (<= (caar it) (truncate percer)
+                   (barpc (cdr (--first (<= (caar it)
+                                            (truncate percer)
                                             (cdar it))
                                         org-density-overlay-percentlevels))))
                (overlay-put ovner :org-density t)
                (overlay-put ovner 'face oface)
                (overlay-put ovner 'display
-                            (format lineform barpc percer
-                                    ndiffs header))))))
+                            (format lineform barpc percer ndiffs header))))))
      (org-density-parse--gethashmap regenerate))))
 
 

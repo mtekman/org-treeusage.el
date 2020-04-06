@@ -6,7 +6,7 @@
 ;; URL: https://github.com/mtekman/org-density.el
 ;; Keywords: outlines
 ;; Package-Requires: ((emacs "26.1"))
-;; Version: 0.1
+;; Version: 0.2
 
 ;;; License:
 
@@ -63,15 +63,15 @@ The format takes 4 positional arguments:
 
 (defun org-density-cycle--usermodes (forw)
   "Cycle a user defined list of formats in direction FORW."
-  (let ((oh-cm org-density-cycle--currentmode)
-        (oh-fm (mapcar 'car org-density-cycle-formats))
-        (direc (if forw 1 -1)))
-    (let* ((curr-index (cl-position oh-cm oh-fm))
-           (next-index (mod (+ curr-index direc) (length oh-fm)))
-           (next-umode (nth next-index oh-fm)))
-      (setq org-density-cycle--currentmode next-umode)
-      (org-density-cycle--runpublichook)
-      (message "Mode: %s" next-umode))))
+  (let* ((oh-cm org-density-cycle--currentmode)
+         (oh-fm (mapcar 'car org-density-cycle-formats))
+         (direc (if forw 1 -1))
+         (curr-index (cl-position oh-cm oh-fm))
+         (next-index (mod (+ curr-index direc) (length oh-fm)))
+         (next-umode (nth next-index oh-fm)))
+    (setq org-density-cycle--currentmode next-umode)
+    (org-density-cycle--runpublichook)
+    (message "Mode: %s" next-umode)))
 
 (defun org-density-cycle-modeforward ()
   "Cycle user modes forwards."
