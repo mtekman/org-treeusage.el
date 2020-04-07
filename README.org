@@ -15,7 +15,8 @@ Install from MELPA or using =use-package=:
 
    #+begin_src elisp
      (use-package org-treeusage
-       :bind ("C-c d" . org-treeusage-mode))
+       :bind ("C-c d" . org-treeusage-mode)
+       :custom (org-treescope-overlay-header nil))
    #+end_src
 
 ** Usage
@@ -28,6 +29,10 @@ By default the mode measures percentage of content by the number of lines in eac
 
 
 ** Customisation
+
+***** Header with Bindings
+
+By default a header with binding information is given when the mode is activated (not pictured in live demo), but this can be easily disabled by setting =org-treeusage-overlay-header= to nil (as in the installation example).
 
 ***** Percentage Bands
 

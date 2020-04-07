@@ -49,6 +49,26 @@ Format is ((lower . upper) . symbol) and bands are allowed to overlap."
   :type 'alist
   :group 'org-treeusage)
 
+(defcustom org-treeusage-overlay-header t
+  "Header to display bindings information."
+  :type 'boolean
+  :group 'org-treeusage)
+
+(defvar org-treeusage-overlay--previousheader nil)
+
+(defun org-treeusage-overlay--setheader (set)
+  "SET or restore the header for the top modeline."
+  (if org-treeusage-overlay-header
+      (if (not set)
+          (setq header-line-format org-treeusage-overlay--previousheader)
+        (setq org-treeusage-overlay--previousheader header-line-format
+              header-line-format (substitute-command-keys
+                                  "Cycle Formats with \
+`\\[org-treeusage-cycle-modebackward]' or \
+`\\[org-treeusage-cycle-modeforward]', and toggle chars/lines with \
+`\\[org-treeusage-cycle-toggletype]'.")))))
+
+
 (defun org-treeusage-overlay--getformatline ()
   "Get the line format, or use the backup one."
   (or (alist-get org-treeusage-cycle--currentmode org-treeusage-cycle-formats)
