@@ -1,8 +1,8 @@
-#+TITLE: org-density.el
+#+TITLE: org-treeusage.el
 
-#+HTML: <a href="https://melpa.org/#/org-density"><img src="https://melpa.org/packages/org-density-badge.svg"></a> <a href="https://stable.melpa.org/#/org-density"><img src="https://stable.melpa.org/packages/org-density-badge.svg"></a>
+#+HTML: <a href="https://melpa.org/#/org-treeusage"><img src="https://melpa.org/packages/org-treeusage-badge.svg"></a> <a href="https://stable.melpa.org/#/org-treeusage"><img src="https://stable.melpa.org/packages/org-treeusage-badge.svg"></a>
 
-This library provides a minor mode for peeking at the line or character density of each heading in an org-mode file, allowing users with large org files to see the distribution of heading content and make informed decisions on where to prune, refile, or archive.
+This library provides a minor mode for peeking at the line or character usage of each heading in an org-mode file with respect to the parent heading, allowing users with large org files to see the distribution of heading content and make informed decisions on where to prune, refile, or archive.
 
 #+HTML: <img src="https://user-images.githubusercontent.com/20641402/78510624-ef313280-7796-11ea-8260-23dd65ebf751.gif" />
 
@@ -14,13 +14,13 @@ This library provides a minor mode for peeking at the line or character density 
 Install from MELPA or using =use-package=:
 
    #+begin_src elisp
-     (use-package org-density
-       :bind ("C-c d" . org-density-mode))
+     (use-package org-treeusage
+       :bind ("C-c d" . org-treeusage-mode))
    #+end_src
 
 ** Usage
 
-Enable =org-density-mode= and press either =COMMA= / =DOT= to cycle either backwards / forwards between the different the org-density line formats (see below).
+Enable =org-treeusage-mode= and press either =COMMA= / =DOT= to cycle either backwards / forwards between the different the line formats (see below).
 
 By default the mode measures percentage of content by the number of lines in each headline, but this can be toggled to measure number of characters by pressing =l=.
 
@@ -31,7 +31,7 @@ By default the mode measures percentage of content by the number of lines in eac
 
 ***** Percentage Bands
 
-The percentage of the contributing content of the current heading divided by the parent is represented by a symbol that maps to one of the percentage bands given by =org-density-overlay-percentlevels=. 
+The percentage of the contributing content of the current heading divided by the parent is represented by a symbol that maps to one of the percentage bands given by =org-treeusage-overlay-percentlevels=. 
 
 #+begin_src elisp
       '(((-9 .  1)  . ▏)
@@ -52,7 +52,7 @@ By default there 11 bands each assigned vertical bar symbols that increase with 
 
 ***** Line Formats
 
-There are 10 different line formats provided in the =org-density-cycle-format= variable, each providing a different sub-selection of titles and metrics to show to the user -- usually a different permutation of four different variables manipulated in format control strings, to represent the percentage /bar/, the percentage amount /perc/, the absolute content amount /diff/, and the headline name /name/.
+There are 10 different line formats provided in the =org-treeusage-cycle-format= variable, each providing a different sub-selection of titles and metrics to show to the user -- usually a different permutation of four different variables manipulated in format control strings, to represent the percentage /bar/, the percentage amount /perc/, the absolute content amount /diff/, and the headline name /name/.
 
 #+begin_src elisp
   '((bardiffpercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
@@ -67,7 +67,7 @@ There are 10 different line formats provided in the =org-density-cycle-format= v
     (diff . "%3$d"))
 #+end_src
 
-The names are descriptive but arbitrary, and users can append their own to the  =org-density-cycle-format= variable. The value of each pair describes:
+The names are descriptive but arbitrary, and users can append their own to the  =org-treeusage-cycle-format= variable. The value of each pair describes:
 
  1. A string representing the percentage band of headline (as explained in the previous subsection).
  2. A float representing the actual current percentage of the headline.
