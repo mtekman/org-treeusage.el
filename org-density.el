@@ -1,9 +1,9 @@
-;;; org-density.el --- Examine the density of org headings -*- lexical-binding: t; -*-
+;;; org-treeusage.el --- Examine the usage of org headings in a tree-like manner -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020 Mehmet Tekman <mtekman89@gmail.com>
 
 ;; Author: Mehmet Tekman
-;; URL: https://github.com/mtekman/org-density.el
+;; URL: https://github.com/mtekman/org-treeusage.el
 ;; Keywords: outlines
 ;; Package-Requires: ((emacs "26.1") (org "9.1.6"))
 ;; Version: 0.2
@@ -27,18 +27,18 @@
 ;; very large org files that might have some redundant data still in it.
 
 ;;; Code:
-(require 'org-density-overlay)
+(require 'org-treeusage-overlay)
 
-(defgroup org-density nil
-  "Customisation group for org-density."
+(defgroup org-treeusage nil
+  "Customisation group for org-treeusage."
   :group 'org)
 
-(defun org-density--printstats ()
+(defun org-treeusage--printstats ()
   "Print stats for each heading, indenting at every level.
 Useful mostly for debugging."
-  (let ((ntype (intern (format ":n%s" org-density-cycle--difftype)))
-        (ptype (intern (format ":p%s" org-density-cycle--difftype)))
-        (neubff (get-buffer-create "org-density-summary.txt")))
+  (let ((ntype (intern (format ":n%s" org-treeusage-cycle--difftype)))
+        (ptype (intern (format ":p%s" org-treeusage-cycle--difftype)))
+        (neubff (get-buffer-create "org-treeusage-summary.txt")))
     (maphash
      (lambda (head info)
        (let ((indent (make-string (* 4 (car head)) ? ))
@@ -49,34 +49,34 @@ Useful mostly for debugging."
            (insert
             (format "\n;;%s %3.0f -- %s {%d}"
                     indent percnt header ndiffs)))))
-     (org-density-parse--processvisible))))
+     (org-treeusage-parse--processvisible))))
 
 
-(defvar org-density--modebind
+(defvar org-treeusage--modebind
   (let ((map (make-sparse-keymap)))
     ;; Don't inherit from parent (read-only-mode)
-    (define-key map (kbd ",") 'org-density-cycle-modebackward)
-    (define-key map (kbd ".") 'org-density-cycle-modeforward)
-    (define-key map (kbd "l") 'org-density-cycle-toggletype)
-    (define-key map (kbd "return") 'org-density-mode)
+    (define-key map (kbd ",") 'org-treeusage-cycle-modebackward)
+    (define-key map (kbd ".") 'org-treeusage-cycle-modeforward)
+    (define-key map (kbd "l") 'org-treeusage-cycle-toggletype)
+    (define-key map (kbd "return") 'org-treeusage-mode)
     map)
   "Keymap for minor mode.")
 
-(define-minor-mode org-density-mode
-  "The minor mode for org-density."
+(define-minor-mode org-treeusage-mode
+  "The minor mode for org-treeusage."
   nil
   " ɗʋ"
-  org-density--modebind
-  (if org-density-mode
-      (progn (add-hook 'org-cycle-hook 'org-density-overlay--setall)
+  org-treeusage--modebind
+  (if org-treeusage-mode
+      (progn (add-hook 'org-cycle-hook 'org-treeusage-overlay--setall)
              (read-only-mode t)
-             (org-density-overlay--setall))
-    (remove-hook 'org-cycle-hook 'org-density-overlay--setall)
-    (org-density-overlay--clear)
+             (org-treeusage-overlay--setall))
+    (remove-hook 'org-cycle-hook 'org-treeusage-overlay--setall)
+    (org-treeusage-overlay--clear)
     (read-only-mode -1)))
 
 
-(add-hook 'org-density-cycle--publichook 'org-density-overlay--setall)
+(add-hook 'org-treeusage-cycle--publichook 'org-treeusage-overlay--setall)
 
-(provide 'org-density)
-;;; org-density.el ends here
+(provide 'org-treeusage)
+;;; org-treeusage.el ends here

@@ -1,9 +1,9 @@
-;;; org-density-cycle.el --- Cycle or toggle formats -*- lexical-binding: t; -*-
+;;; org-treeusage-cycle.el --- Cycle or toggle line formats -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020 Mehmet Tekman <mtekman89@gmail.com>
 
 ;; Author: Mehmet Tekman
-;; URL: https://github.com/mtekman/org-density.el
+;; URL: https://github.com/mtekman/org-treeusage.el
 ;; Keywords: outlines
 ;; Package-Requires: ((emacs "26.1"))
 ;; Version: 0.2
@@ -22,12 +22,12 @@
 
 ;;; Commentary:
 
-;; See org-density.el
+;; See org-treeusage.el
 
 ;;; Code:
 (require 'cl-lib)
 
-(defcustom org-density-cycle-formats
+(defcustom org-treeusage-cycle-formats
   '((bardiffpercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
     (bardiffperc . "%1$-5s |%3$-5d|%2$5.1f%%")
     (bardiffname . "%1$s%3$-5d|%4$s")
@@ -38,64 +38,64 @@
     (perc . "%2$5.1f%%")
     (diffname . "%3$d|%4$s")
     (diff . "%3$d"))
-  "Specify different formats to represent the density.
+  "Specify different formats to represent the line or character density.
 Some are given here as examples.  The first is the default used on startup.
 The format takes 4 positional arguments:
  1. A string representing the percentage band as set in
-    `org-density-percentlevels'.
+    `org-treeusage-percentlevels'.
  2. A float showing the current percentage
  3. An integer showing the number of lines/chars under the headline.
  4. A string with the name of headline."
   :type 'alist
-  :group 'org-density)
+  :group 'org-treeusage)
 
-(defvar org-density-cycle--currentmode 'bar
+(defvar org-treeusage-cycle--currentmode 'bar
   "Current line format.  Default is bar.")
 
-(defvar org-density-cycle--difftype 'lines
+(defvar org-treeusage-cycle--difftype 'lines
   "Current diff type.  Strictly either 'lines or 'chars.")
 
-(defvar org-density-cycle--publichook nil
+(defvar org-treeusage-cycle--publichook nil
   "Hook to run at the end of an interactive function.")
 
-(defun org-density-cycle--runpublichook ()
+(defun org-treeusage-cycle--runpublichook ()
   "Run the public finish hook."
-  (run-hooks 'org-density-cycle--publichook))
+  (run-hooks 'org-treeusage-cycle--publichook))
 
-(defun org-density-cycle--usermodes (forw)
+(defun org-treeusage-cycle--usermodes (forw)
   "Cycle line formats forward if FORW, otherwise backwards."
-  (let* ((oh-cm org-density-cycle--currentmode)
-         (oh-fm (mapcar 'car org-density-cycle-formats))
+  (let* ((oh-cm org-treeusage-cycle--currentmode)
+         (oh-fm (mapcar 'car org-treeusage-cycle-formats))
          (direc (if forw 1 -1))
          (curr-index (cl-position oh-cm oh-fm))
          (next-index (mod (+ curr-index direc) (length oh-fm)))
          (next-umode (nth next-index oh-fm)))
-    (setq org-density-cycle--currentmode next-umode)
-    (org-density-cycle--runpublichook)
+    (setq org-treeusage-cycle--currentmode next-umode)
+    (org-treeusage-cycle--runpublichook)
     (message "Mode: %s" next-umode)))
 
 ;;;###autoload
-(defun org-density-cycle-modeforward ()
+(defun org-treeusage-cycle-modeforward ()
   "Cycle line formats forwards."
   (interactive)
-  (org-density-cycle--usermodes t))
+  (org-treeusage-cycle--usermodes t))
 
 ;;;###autoload
-(defun org-density-cycle-modebackward ()
+(defun org-treeusage-cycle-modebackward ()
   "Cycle line formats backwards."
   (interactive)
-  (org-density-cycle--usermodes nil))
+  (org-treeusage-cycle--usermodes nil))
 
 ;;;###autoload
-(defun org-density-cycle-toggletype ()
+(defun org-treeusage-cycle-toggletype ()
   "Toggle the diff type from characters to lines."
   (interactive)
-  (let* ((cmode org-density-cycle--difftype)
+  (let* ((cmode org-treeusage-cycle--difftype)
          (nmode (if (eq cmode 'lines) 'chars 'lines)))
-    (setq org-density-cycle--difftype nmode)
-    (org-density-cycle--runpublichook)
+    (setq org-treeusage-cycle--difftype nmode)
+    (org-treeusage-cycle--runpublichook)
     (message "Type: %s" nmode)))
 
 
-(provide 'org-density-cycle)
-;;; org-density-cycle.el ends here
+(provide 'org-treeusage-cycle)
+;;; org-treeusage-cycle.el ends here

@@ -1,9 +1,9 @@
-;;; org-density-overlay.el --- Overlay library -*- lexical-binding: t; -*-
+;;; org-treeusage-overlay.el --- Overlay library -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020 Mehmet Tekman <mtekman89@gmail.com>
 
 ;; Author: Mehmet Tekman
-;; URL: https://github.com/mtekman/org-density.el
+;; URL: https://github.com/mtekman/org-treeusage.el
 ;; Keywords: outlines
 ;; Package-Requires: ((emacs "26.1") (dash "2.17.0") (org "9.1.6"))
 ;; Version: 0.2
@@ -22,17 +22,17 @@
 
 ;;; Commentary:
 
-;; See org-density.el
+;; See org-treeusage.el
 
 ;;; Code:
 (require 'dash)
-(require 'org-density-cycle) ;; brings nil
-(require 'org-density-parse) ;; brings
+(require 'org-treeusage-cycle) ;; brings nil
+(require 'org-treeusage-parse) ;; brings
 
-(defvar org-density-overlay--backupformat "%1$-5s--%3$d"
+(defvar org-treeusage-overlay--backupformat "%1$-5s--%3$d"
   "Fallback in case an invalid line format is chosen by the user.")
 
-(defcustom org-density-overlay-percentlevels
+(defcustom org-treeusage-overlay-percentlevels
   '(((-9 .  1)  . ▏)
     (( 2 . 10)  . ▎)
     ((11 . 20)  . ▋)
@@ -47,30 +47,30 @@
   "Set the percentage lower and upper bands and the corresponding symbol.
 Format is ((lower . upper) . symbol) and bands are allowed to overlap."
   :type 'alist
-  :group 'org-density)
+  :group 'org-treeusage)
 
-(defun org-density-overlay--getformatline ()
+(defun org-treeusage-overlay--getformatline ()
   "Get the line format, or use the backup one."
-  (or (alist-get org-density-cycle--currentmode org-density-cycle-formats)
+  (or (alist-get org-treeusage-cycle--currentmode org-treeusage-cycle-formats)
       (progn (message "using backup format.")
-             org-density-overlay--backupformat)))
+             org-treeusage-overlay--backupformat)))
 
-(defun org-density-overlay--clear ()
+(defun org-treeusage-overlay--clear ()
   "Remove all overlays."
   (let ((ovs (overlays-in (point-min) (point-max))))
     (if (cl-loop for ov in ovs
-                 thereis (overlay-get ov :org-density))
+                 thereis (overlay-get ov :org-treeusage))
         (dolist (ov ovs)
-          (when (overlay-get ov :org-density)
+          (when (overlay-get ov :org-treeusage)
             (delete-overlay ov))))))
 
 
-(defun org-density-overlay--setall (&optional regenerate)
+(defun org-treeusage-overlay--setall (&optional regenerate)
   "Set all overlays.  If REGENERATE is passed (as is the case) when called from org-cycle-hook, then regenerate the hash table."
-  (org-density-overlay--clear)
-  (let ((lineform (org-density-overlay--getformatline))
-        (ntype (intern (format ":n%s" org-density-cycle--difftype)))
-        (ptype (intern (format ":p%s" org-density-cycle--difftype))))
+  (org-treeusage-overlay--clear)
+  (let ((lineform (org-treeusage-overlay--getformatline))
+        (ntype (intern (format ":n%s" org-treeusage-cycle--difftype)))
+        (ptype (intern (format ":p%s" org-treeusage-cycle--difftype))))
     (maphash
      (lambda (head info)
        (let ((bounds (plist-get info :bounds))
@@ -86,13 +86,13 @@ Format is ((lower . upper) . symbol) and bands are allowed to overlap."
                    (barpc (cdr (--first (<= (caar it)
                                             (truncate percer)
                                             (cdar it))
-                                        org-density-overlay-percentlevels))))
-               (overlay-put ovner :org-density t)
+                                        org-treeusage-overlay-percentlevels))))
+               (overlay-put ovner :org-treeusage t)
                (overlay-put ovner 'face oface)
                (overlay-put ovner 'display
                             (format lineform barpc percer ndiffs header))))))
-     (org-density-parse--gethashmap regenerate))))
+     (org-treeusage-parse--gethashmap regenerate))))
 
 
-(provide 'org-density-overlay)
-;;; org-density-overlay.el ends here
+(provide 'org-treeusage-overlay)
+;;; org-treeusage-overlay.el ends here
