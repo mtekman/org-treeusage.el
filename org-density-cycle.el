@@ -74,17 +74,19 @@ The format takes 4 positional arguments:
     (org-density-cycle--runpublichook)
     (message "Mode: %s" next-umode)))
 
+;;;###autoload
 (defun org-density-cycle-modeforward ()
   "Cycle line formats forwards."
   (interactive)
   (org-density-cycle--usermodes t))
 
+;;;###autoload
 (defun org-density-cycle-modebackward ()
   "Cycle line formats backwards."
   (interactive)
   (org-density-cycle--usermodes nil))
 
-
+;;;###autoload
 (defun org-density-cycle-toggletype ()
   "Toggle the diff type from characters to lines."
   (interactive)
