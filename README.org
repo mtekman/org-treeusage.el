@@ -4,7 +4,7 @@
 
 This library provides a minor mode for peeking at the line or character usage of each heading in an org-mode file with respect to the parent heading, allowing users with large org files to see the distribution of heading content and make informed decisions on where to prune, refile, or archive.
 
-#+HTML: <img src="https://user-images.githubusercontent.com/20641402/78510624-ef313280-7796-11ea-8260-23dd65ebf751.gif" />
+#+HTML: <img src="https://user-images.githubusercontent.com/20641402/78703019-ce3d1e80-7909-11ea-9b21-6aa60db48c07.gif" />
 
 
 
