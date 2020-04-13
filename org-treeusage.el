@@ -65,7 +65,7 @@ Useful mostly for debugging."
 (define-minor-mode org-treeusage-mode
   "The minor mode for org-treeusage."
   nil
-  " ɗʋ"
+  " tu"
   org-treeusage--modebind
   (if org-treeusage-mode
       (progn (add-hook #'org-cycle-hook #'org-treeusage-overlay--setall)
