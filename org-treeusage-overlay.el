@@ -86,7 +86,7 @@ Format is ((lower . upper) . symbol) and bands are allowed to overlap."
 
 
 (defun org-treeusage-overlay--setall (&optional regenerate)
-  "Set all overlays.  If REGENERATE is passed (as is the case) when called from org-cycle-hook, then regenerate the hash table."
+  "Set all overlays.  If REGENERATE is passed (as is the case) when called from `org-cycle-hook', then regenerate the hash table."
   (org-treeusage-overlay--clear)
   (let ((lineform (org-treeusage-overlay--getformatline))
         (ntype (intern (format ":n%s" org-treeusage-cycle--difftype)))
