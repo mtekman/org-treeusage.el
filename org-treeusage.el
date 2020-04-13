@@ -68,17 +68,17 @@ Useful mostly for debugging."
   " ɗʋ"
   org-treeusage--modebind
   (if org-treeusage-mode
-      (progn (add-hook 'org-cycle-hook 'org-treeusage-overlay--setall)
+      (progn (add-hook #'org-cycle-hook #'org-treeusage-overlay--setall)
              (read-only-mode t)
              (org-treeusage-overlay--setall)
              (org-treeusage-overlay--setheader t))
-    (remove-hook 'org-cycle-hook 'org-treeusage-overlay--setall)
+    (remove-hook #'org-cycle-hook #'org-treeusage-overlay--setall)
     (org-treeusage-overlay--clear)
     (read-only-mode -1)
     (org-treeusage-overlay--setheader nil)))
 
 
-(add-hook 'org-treeusage-cycle--publichook 'org-treeusage-overlay--setall)
+(add-hook #'org-treeusage-cycle--publichook #'org-treeusage-overlay--setall)
 
 (provide 'org-treeusage)
 ;;; org-treeusage.el ends here

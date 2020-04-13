@@ -65,7 +65,7 @@ The format takes 4 positional arguments:
 (defun org-treeusage-cycle--usermodes (forw)
   "Cycle line formats forward if FORW, otherwise backwards."
   (let* ((oh-cm org-treeusage-cycle--currentmode)
-         (oh-fm (mapcar 'car org-treeusage-cycle-formats))
+         (oh-fm (mapcar #'car org-treeusage-cycle-formats))
          (direc (if forw 1 -1))
          (curr-index (cl-position oh-cm oh-fm))
          (next-index (mod (+ curr-index direc) (length oh-fm)))
