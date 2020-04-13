@@ -5,7 +5,7 @@
 ;; Author: Mehmet Tekman
 ;; URL: https://github.com/mtekman/org-treeusage.el
 ;; Keywords: outlines
-;; Package-Requires: ((emacs "26.1") (org "9.1.6"))
+;; Package-Requires: ((emacs "26.1") (dash "2.17.0") (org "9.1.6"))
 ;; Version: 0.2
 
 ;;; License:
