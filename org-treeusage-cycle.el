@@ -5,7 +5,7 @@
 ;; Author: Mehmet Tekman
 ;; URL: https://github.com/mtekman/org-treeusage.el
 ;; Keywords: outlines
-;; Version: 0.2
+;; Version: 0.3
 
 ;;; License:
 

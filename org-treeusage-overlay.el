@@ -5,7 +5,7 @@
 ;; Author: Mehmet Tekman
 ;; URL: https://github.com/mtekman/org-treeusage.el
 ;; Keywords: outlines
-;; Version: 0.2
+;; Version: 0.3
 
 ;;; License:
 
@@ -31,20 +31,26 @@
 (defvar org-treeusage-overlay--backupformat "%1$-5s--%3$d"
   "Fallback in case an invalid line format is chosen by the user.")
 
+(defcustom org-treeusage-overlay-colorbands t
+  "Use the color in the percentage bands given in `org-treeusage-overlay-percentlevels'."
+  :type 'boolean
+  :group 'org-treeusage)
+
 (defcustom org-treeusage-overlay-percentlevels
-  '(((-9 .  1)  . ▏)
-    (( 2 . 10)  . ▎)
-    ((11 . 20)  . ▋)
-    ((21 . 30)  . █)
-    ((31 . 40)  . █▋)
-    ((41 . 50)  . ██)
-    ((51 . 60)  . ██▋)
-    ((61 . 70)  . ███)
-    ((71 . 80)  . ███▋)
-    ((81 . 90)  . ████)
-    ((91 . 110) . ████▋))
+  '(((-9 .  1)  . (▏ . magit-blame-dimmed))
+    (( 2 . 10)  . (▎ . magit-blame-dimmed))
+    ((11 . 20)  . (▋ . ibuffer-locked-buffer))
+    ((21 . 30)  . (█ . ibuffer-locked-buffer))
+    ((31 . 40)  . (█▋ . magit-reflog-rebase))
+    ((41 . 50)  . (██ . magit-reflog-rebase))
+    ((51 . 60)  . (██▋ . magit-signature-revoked))
+    ((61 . 70)  . (███ . magit-signature-error))
+    ((71 . 80)  . (███▋ . magit-signature-drop))
+    ((81 . 90)  . (████ . magit-signature-bad))
+    ((91 . 110) . (████▋ . magit-signature-bad)))
   "Set the percentage lower and upper bands and the corresponding symbol.
-Format is ((lower . upper) . symbol) and bands are allowed to overlap."
+Format is ((lower . upper) . (symbol . face)) and bands are allowed to overlap.
+Run `list-faces-display' for a selection of faces."
   :type 'alist
   :group 'org-treeusage)
 
@@ -89,7 +95,11 @@ Format is ((lower . upper) . symbol) and bands are allowed to overlap."
   (org-treeusage-overlay--clear)
   (let ((lineform (org-treeusage-overlay--getformatline))
         (ntype (intern (format ":n%s" org-treeusage-cycle--difftype)))
-        (ptype (intern (format ":p%s" org-treeusage-cycle--difftype))))
+        (ptype (intern (format ":p%s" org-treeusage-cycle--difftype)))
+        (percbands (if org-treeusage-overlay-colorbands
+                       org-treeusage-overlay-percentlevels
+                     (--map (cons (nth 0 it) (nth 1 it))  ;; Kill faces
+                            org-treeusage-overlay-percentlevels))))
     (maphash
      (lambda (head info)
        (let ((bounds (plist-get info :bounds))
@@ -100,16 +110,30 @@ Format is ((lower . upper) . symbol) and bands are allowed to overlap."
          ;; Have to choose either characters or lines at this
          ;; point to get the correct bar.
          (if percer
-             (let ((oface (intern (format "org-level-%s" leveln)))
-                   (ovner (make-overlay (car bounds) (cdr bounds)))
-                   (barpc (cdr (--first (<= (caar it)
-                                            (truncate percer)
-                                            (cdar it))
-                                        org-treeusage-overlay-percentlevels))))
-               (overlay-put ovner :org-treeusage t)
-               (overlay-put ovner 'face oface)
-               (overlay-put ovner 'display
-                            (format lineform barpc percer ndiffs header))))))
+             (let ((facehead (intern (format "org-level-%s" leveln)))
+                   (overhead (make-overlay (car bounds) (cdr bounds)))
+                   (percdata (cdr (--first (<= (caar it)
+                                               (truncate percer)
+                                               (cdar it))
+                                           percbands))))
+               ;;
+               (overlay-put overhead :org-treeusage t)
+               ;; if percdata is just a symbol, use it
+               ;; otherwise (symb . face)
+               (if (eq (type-of percdata) 'cons)
+                   (let ((percsymb (car percdata))
+                         (faceperc (cdr percdata)))
+                     ;; Header
+                     (overlay-put overhead 'face faceperc)
+                     (overlay-put overhead 'display
+                                  (format lineform percsymb percer
+                                          ndiffs header)))
+                 ;; Header
+                 (overlay-put overhead 'face facehead)
+                 (overlay-put overhead 'display
+                              (format lineform percdata percer
+                                      ndiffs header)))))))
+     ;;
      (org-treeusage-parse--gethashmap regenerate))))
 
 
