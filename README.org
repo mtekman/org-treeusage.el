@@ -81,3 +81,7 @@ The names are descriptive but arbitrary, and users can append their own to the  
 
 Please consult the in-built help =C-h f RET format= for more information on how to represent these values.
 
+
+** Similar Projects
+
+ - [[https://github.com/novoid/org-du/tree/master/orgdu][org-du]] provides an interactive graphical representation of an org-file whilst being independent of emacs.
