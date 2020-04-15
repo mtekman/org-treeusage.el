@@ -16,7 +16,10 @@ Install from MELPA or using =use-package=:
    #+begin_src elisp
      (use-package org-treeusage
        :bind ("C-c d" . org-treeusage-mode)
-       :custom (org-treescope-overlay-header nil))
+       :custom
+       ;; Below two settings recreate the above image
+       ((org-treescope-overlay-header nil)
+        (org-treeusage-overlay-colorbands nil)))
    #+end_src
 
 ** Usage
@@ -36,24 +39,27 @@ By default a header with binding information is given when the mode is activated
 
 ***** Percentage Bands
 
-The percentage of the contributing content of the current heading divided by the parent is represented by a symbol that maps to one of the percentage bands given by =org-treeusage-overlay-percentlevels=. 
+The percentage of the contributing content of the current heading divided by the parent is represented by a symbol that maps to one of the percentage bands given by =org-treeusage-overlay-percentlevels=.
 
 #+begin_src elisp
-      '(((-9 .  1)  . ▏)
-        (( 2 . 10)  . ▎)
-        ((11 . 20)  . ▋)
-        ((21 . 30)  . █)
-        ((31 . 40)  . █▋)
-        ((41 . 50)  . ██)
-        ((51 . 60)  . ██▋)
-        ((61 . 70)  . ███)
-        ((71 . 80)  . ███▋)
-        ((81 . 90)  . ████)
-        ((91 . 110) . ████▋))
+  ;; (min-% . max-%) . (%-symbol . face)
+  '(((-9 .  1)  . (▏ . magit-blame-dimmed))
+    (( 2 . 10)  . (▎ . magit-blame-dimmed))
+    ((11 . 20)  . (▋ . ibuffer-locked-buffer))
+    ((21 . 30)  . (█ . ibuffer-locked-buffer))
+    ((31 . 40)  . (█▋ . magit-reflog-rebase))
+    ((41 . 50)  . (██ . magit-reflog-rebase))
+    ((51 . 60)  . (██▋ . magit-signature-revoked))
+    ((61 . 70)  . (███ . magit-signature-error))
+    ((71 . 80)  . (███▋ . magit-signature-drop))
+    ((81 . 90)  . (████ . magit-signature-bad))
+    ((91 . 110) . (████▋ . magit-signature-bad)))
 #+end_src
 
-
 By default there 11 bands each assigned vertical bar symbols that increase with the percentage band, but there could ultimately be any number of bands representing any symbols the user desires. The bands should /ideally/ not overlap, but it is not a strict requirement, where the first matching band is returned.
+
+By default, the entire heading is coloured by the faces given for the corresponding percentage band, but this can be disabled to fallback onto the org-heading-level faces by setting =org-treeusage-overlay-colorbands= to =nil=.
+
 
 ***** Line Formats
 
@@ -85,3 +91,11 @@ Please consult the in-built help =C-h f RET format= for more information on how 
 ** Similar Projects
 
  - [[https://github.com/novoid/org-du/tree/master/orgdu][org-du]] provides an interactive graphical representation of an org-file whilst being independent of emacs.
+
+** Changelog
+
+*** 0.3
+- Added =org-treeusage-overlay-colorbands= custom setting to colourise percentage bands.
+
+*** 0.2
+- Initial release
