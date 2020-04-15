@@ -59,14 +59,14 @@ Run `list-faces-display' for a selection of faces."
   :type 'boolean
   :group 'org-treeusage)
 
-(defvar org-treeusage-overlay--previousheader nil)
+(defvar-local org-treeusage-overlay--previousheader nil)
 
 (defun org-treeusage-overlay--setheader (set)
   "SET or restore the header for the top modeline."
   (if org-treeusage-overlay-header
       (if (not set)
-          (setq header-line-format org-treeusage-overlay--previousheader)
-        (setq org-treeusage-overlay--previousheader header-line-format
+          (setq-local header-line-format org-treeusage-overlay--previousheader)
+        (setq-local org-treeusage-overlay--previousheader header-line-format
               header-line-format (substitute-command-keys
                                   "Cycle Formats with \
 `\\[org-treeusage-cycle-modebackward]' or \

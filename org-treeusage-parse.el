@@ -26,11 +26,11 @@
 ;;; Code:
 (require 'org-element)
 
-(defvar org-treeusage-parse--prntalist nil
+(defvar-local org-treeusage-parse--prntalist nil
   "List of (level . heading) parent nodes.
 Popped from and pushed to, as the org file is parsed.")
 
-(defvar org-treeusage-parse--hashmap nil)
+(defvar-local org-treeusage-parse--hashmap nil)
 
 (defun org-treeusage-parse--gethashmap (&optional regenerate)
   "Retrieve or generate hashmap.  If REGENERATE, then re-parse the buffer."
@@ -102,7 +102,7 @@ Popped from and pushed to, as the org file is parsed.")
 (defun org-treeusage-parse--processvisible ()
   "Parse the visible org headings in the current buffer, and collect information at each heading/node about number of lines, characters, and their percentages wrt the parent node.  The variable `org-treeusage-parse--hashmap' is updated to the hashmap generated here."
   (save-excursion
-    (setq org-treeusage-parse--prntalist nil)
+    (setq-local org-treeusage-parse--prntalist nil)
     (let ((hasher (make-hash-table :test 'equal))
           (prnt-curr nil)
           (prev-key nil))
@@ -147,7 +147,7 @@ Popped from and pushed to, as the org file is parsed.")
                                :bounds hrng)
                          hasher)
                 (setq prev-key elkey))))))
-      (setq org-treeusage-parse--hashmap hasher))))
+      (setq-local org-treeusage-parse--hashmap hasher))))
 
 
 (provide 'org-treeusage-parse)

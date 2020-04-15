@@ -48,10 +48,10 @@ The format takes 4 positional arguments:
   :type 'alist
   :group 'org-treeusage)
 
-(defvar org-treeusage-cycle--currentmode 'bar
+(defvar-local org-treeusage-cycle--currentmode 'bar
   "Current line format.  Default is bar.")
 
-(defvar org-treeusage-cycle--difftype 'lines
+(defvar-local org-treeusage-cycle--difftype 'lines
   "Current diff type.  Strictly either 'lines or 'chars.")
 
 (defvar org-treeusage-cycle--publichook nil
@@ -69,7 +69,7 @@ The format takes 4 positional arguments:
          (curr-index (cl-position oh-cm oh-fm))
          (next-index (mod (+ curr-index direc) (length oh-fm)))
          (next-umode (nth next-index oh-fm)))
-    (setq org-treeusage-cycle--currentmode next-umode)
+    (setq-local org-treeusage-cycle--currentmode next-umode)
     (org-treeusage-cycle--runpublichook)
     (message "Mode: %s" next-umode)))
 
@@ -91,7 +91,7 @@ The format takes 4 positional arguments:
   (interactive)
   (let* ((cmode org-treeusage-cycle--difftype)
          (nmode (if (eq cmode 'lines) 'chars 'lines)))
-    (setq org-treeusage-cycle--difftype nmode)
+    (setq-local org-treeusage-cycle--difftype nmode)
     (org-treeusage-cycle--runpublichook)
     (message "Type: %s" nmode)))
 
