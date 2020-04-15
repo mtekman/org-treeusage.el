@@ -66,9 +66,10 @@ Run `list-faces-display' for a selection of faces."
   (if org-treeusage-overlay-header
       (if (not set)
           (setq-local header-line-format org-treeusage-overlay--previousheader)
-        (setq-local org-treeusage-overlay--previousheader header-line-format
-              header-line-format (substitute-command-keys
-                                  "Cycle Formats with \
+        (setq-local org-treeusage-overlay--previousheader header-line-format)
+        (setq-local header-line-format
+                    (substitute-command-keys
+                     "Cycle Formats with \
 `\\[org-treeusage-cycle-modebackward]' or \
 `\\[org-treeusage-cycle-modeforward]', and toggle chars/lines with \
 `\\[org-treeusage-cycle-toggletype]'.")))))
