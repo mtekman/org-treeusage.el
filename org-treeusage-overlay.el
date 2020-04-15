@@ -94,48 +94,47 @@ Run `list-faces-display' for a selection of faces."
 (defun org-treeusage-overlay--setall (&optional regenerate)
   "Set all overlays.  If REGENERATE is passed (as is the case) when called from `org-cycle-hook', then regenerate the hash table."
   (org-treeusage-overlay--clear)
-  (let ((lineform (org-treeusage-overlay--getformatline))
-        (ntype (intern (format ":n%s" org-treeusage-cycle--difftype)))
-        (ptype (intern (format ":p%s" org-treeusage-cycle--difftype)))
-        (percbands (if org-treeusage-overlay-colorbands
-                       org-treeusage-overlay-percentlevels
-                     (--map (cons (nth 0 it) (nth 1 it))  ;; Kill faces
-                            org-treeusage-overlay-percentlevels))))
+  (let* ((difftype (intern (format ":n%s" org-treeusage-cycle--difftype)))
+         (hasher (org-treeusage-parse--gethashmap regenerate))
+         (lineform (org-treeusage-overlay--getformatline))
+         (percbands (if org-treeusage-overlay-colorbands
+                        org-treeusage-overlay-percentlevels
+                      (--map (cons (nth 0 it) (nth 1 it))  ;; Kill faces
+                             org-treeusage-overlay-percentlevels))))
     (maphash
      (lambda (head info)
-       (let ((bounds (plist-get info :bounds))
-             (ndiffs (plist-get info ntype))
-             (percer (plist-get info ptype))
-             (leveln (car head))
-             (header (cdr head)))
-         ;; Have to choose either characters or lines at this
-         ;; point to get the correct bar.
-         (if percer
-             (let ((facehead (intern (format "org-level-%s" leveln)))
-                   (overhead (make-overlay (car bounds) (cdr bounds)))
-                   (percdata (cdr (--first (<= (caar it)
-                                               (truncate percer)
-                                               (cdar it))
-                                           percbands))))
-               ;;
-               (overlay-put overhead :org-treeusage t)
-               ;; if percdata is just a symbol, use it
+       (let ((bounds (plist-get info :bounds)) ;; child
+             (nchars (plist-get info :nchars))
+             (nwords (plist-get info :nwords))
+             (nlines (plist-get info :nlines))
+             (ndiffs (plist-get info difftype)) ;; one of the ones above.
+             (leveln (car head)) (header (cdr head))
+             (parent (gethash (plist-get info :parentkey) hasher)))
+         (if parent
+             (let* ((par-diff (plist-get parent difftype)) ;; parent
+                    ;; Perform calculation
+                    (percdiff (/ (float (* 100 ndiffs)) par-diff))
+                    ;; default face are org-level-headings
+                    (facehead (intern (format "org-level-%s" leveln)))
+                    (overhead (make-overlay (car bounds) (cdr bounds)))
+                    (percsymb (cdr (--first (<= (caar it)
+                                                (truncate percdiff)
+                                                (cdar it))
+                                            percbands))))
+               ;; if percband is just a symbol, use it
                ;; otherwise (symb . face)
-               (if (eq (type-of percdata) 'cons)
-                   (let ((percsymb (car percdata))
-                         (faceperc (cdr percdata)))
-                     ;; Header
-                     (overlay-put overhead 'face faceperc)
-                     (overlay-put overhead 'display
-                                  (format lineform percsymb percer
-                                          ndiffs header)))
-                 ;; Header
-                 (overlay-put overhead 'face facehead)
-                 (overlay-put overhead 'display
-                              (format lineform percdata percer
-                                      ndiffs header)))))))
-     ;;
-     (org-treeusage-parse--gethashmap regenerate))))
+               (if (eq (type-of percsymb) 'cons)
+                   (setq facehead (cdr percsymb)
+                         percsymb (car percsymb)))
+               ;; Header
+               (overlay-put overhead :org-treeusage t)
+               (overlay-put overhead 'face facehead)
+               (overlay-put overhead 'display
+                            (format lineform ;; symbol, percentage, abs
+                                    percsymb percdiff ndiffs
+                                    nlines nwords nchars
+                                    header))))))
+     hasher)))
 
 
 (provide 'org-treeusage-overlay)

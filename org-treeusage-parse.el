@@ -65,18 +65,17 @@ Popped from and pushed to, as the org file is parsed.")
                       (point)))
          (pbeg (progn (goto-char 0)
                       (org-next-visible-heading 1)
-                      (point)))
-         (dchar (- pend pbeg))
-         (dline (- (line-number-at-pos pend)
-                   (line-number-at-pos pbeg)))
-         ;; make key: level title
-         (dkey (cons 0 nil)))
+                      (point))))
+    (let ((dchar (- pend pbeg))
+          (dline (count-lines pbeg pend))
+          (dword (count-words pbeg pend))
+          ;; make key: level title
+          (dkey (cons 0 nil)))
     (move-beginning-of-line 0)
     (puthash dkey
-             ;; Make values: plist
-             (list :nlines dline :nchars dchar)
+             (list :nlines dline :nchars dchar :nwords dword)
              hashmap)
-    dkey))
+    dkey)))
 
 
 (defun org-treeusage-parse--updateparents (lvl-now previousk)
@@ -107,7 +106,8 @@ Popped from and pushed to, as the org file is parsed.")
           (prnt-curr nil)
           (prev-key nil))
       ;; Jump to beginning and parse headers
-      (push (org-treeusage-parse--makeroot hasher) org-treeusage-parse--prntalist)
+      (push (org-treeusage-parse--makeroot hasher)
+            org-treeusage-parse--prntalist)
       ;;
       (while (let ((prevpnt (point)))
                ;; org-next-vis always returns nil, so
@@ -124,31 +124,24 @@ Popped from and pushed to, as the org file is parsed.")
             ;; Check and update parent
             (setq prnt-curr (org-treeusage-parse--updateparents
                              level prev-key))
-            (let ((dchar ;; -- calc number of chars
-                   (- (plist-get info :end)
-                      (plist-get info :begin)))
-                  (dline ;; -- calc number of lines
-                   (- (line-number-at-pos (plist-get info :end))
-                      (line-number-at-pos (plist-get info :begin))))
-                  ;;
-                  (elkey (cons level head)) ;; make key: level title
-                  (prnt-inf (gethash prnt-curr hasher))
-                  (calcperc (lambda (c p)(/ (float (* 100 c)) p))))
-              ;;
-              ;; -- Calculate line and character percentages
-              (let ((lperc (funcall calcperc dline
-                                    (plist-get prnt-inf :nlines)))
-                    (cperc (funcall calcperc dchar
-                                    (plist-get prnt-inf :nchars))))
-                (puthash elkey
-                         ;; Make values: plist
+            ;; Why have I nested lets like this? Lack of trust.
+            ;;
+            ;; calc number of chars, lines, words
+            (let ((posbeg (plist-get info :begin))
+                  (posend (plist-get info :end)))
+              (let ((dchar (- posend posbeg))
+                    (dline (count-lines posbeg posend))
+                    (dword (count-words posbeg posend))
+                    ;; make key: level title
+                    (elkey (cons level head)))
+                ;;
+                (puthash elkey ;; Make values: plist
                          (list :nlines dline :nchars dchar
-                               :plines lperc :pchars cperc
-                               :bounds hrng)
+                               :nwords dword :bounds hrng
+                               :parentkey prnt-curr)
                          hasher)
                 (setq prev-key elkey))))))
       (setq-local org-treeusage-parse--hashmap hasher))))
-
 
 (provide 'org-treeusage-parse)
 ;;; org-treeusage-parse.el ends here
