@@ -57,7 +57,7 @@ Useful mostly for debugging."
     ;; Don't inherit from parent (read-only-mode)
     (define-key map (kbd ",") 'org-treeusage-cycle-modebackward)
     (define-key map (kbd ".") 'org-treeusage-cycle-modeforward)
-    (define-key map (kbd "l") 'org-treeusage-cycle-toggletype)
+    (define-key map (kbd "l") 'org-treeusage-cycle-cycletype)
     (define-key map (kbd "<return>") 'org-treeusage-mode)
     map)
   "Keymap for minor mode.")
@@ -68,13 +68,14 @@ Useful mostly for debugging."
   " tu"
   org-treeusage--modebind
   (if org-treeusage-mode
-      (progn (add-hook 'org-cycle-hook #'org-treeusage-overlay--setall)
-             (read-only-mode t)
-             (org-treeusage-overlay--setall)
+      (progn (read-only-mode t)
+             (add-hook 'org-cycle-hook #'org-treeusage-overlay--setall)
+             ;; assume buffer modified, regenerate (-1)
+             (org-treeusage-overlay--setall -1)
              (org-treeusage-overlay--setheader t))
+    (read-only-mode -1)
     (remove-hook 'org-cycle-hook #'org-treeusage-overlay--setall)
     (org-treeusage-overlay--clear)
-    (read-only-mode -1)
     (org-treeusage-overlay--setheader nil)))
 
 

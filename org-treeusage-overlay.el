@@ -91,11 +91,11 @@ Run `list-faces-display' for a selection of faces."
             (delete-overlay ov))))))
 
 
-(defun org-treeusage-overlay--setall (&optional regenerate)
-  "Set all overlays.  If REGENERATE is passed (as is the case) when called from `org-cycle-hook', then regenerate the hash table."
+(defun org-treeusage-overlay--setall (&optional reusemap)
+  "Set all overlays.  If REUSEMAP is passed (as is the case) when called from `org-cycle-hook', then use or update the existing hashtable."
   (org-treeusage-overlay--clear)
   (let* ((difftype (intern (format ":n%s" org-treeusage-cycle--difftype)))
-         (hasher (org-treeusage-parse--gethashmap regenerate))
+         (hasher (org-treeusage-parse--gethashmap reusemap))
          (lineform (org-treeusage-overlay--getformatline))
          (percbands (if org-treeusage-overlay-colorbands
                         org-treeusage-overlay-percentlevels

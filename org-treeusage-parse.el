@@ -32,13 +32,16 @@ Popped from and pushed to, as the org file is parsed.")
 
 (defvar-local org-treeusage-parse--hashmap nil)
 
-(defun org-treeusage-parse--gethashmap (&optional regenerate)
-  "Retrieve or generate hashmap.  If REGENERATE, then re-parse the buffer."
-  (when (or regenerate
-            (not org-treeusage-parse--hashmap))
-    (message "Regenerating")
-    (org-treeusage-parse--processvisible))
-  org-treeusage-parse--hashmap)
+
+(defun org-treeusage-parse--gethashmap (&optional reusemap)
+  "Retrieve or generate hashmap.  If REUSEMAP is t, then parse the buffer with the existing hashmap but only update the entries.  If REUSEMAP is -1, then completely regenerate the hashmap.  A value of nil will return the map as it is."
+  (let ((noexist (not org-treeusage-parse--hashmap)))
+    (cond ((eq reusemap nil) org-treeusage-parse--hashmap)
+          ((or (eq reusemap -1) noexist)
+           (progn (message "Regenerating.")
+                  (org-treeusage-parse--processvisible t)))
+          (t (progn (message "Updating.")
+                    (org-treeusage-parse--processvisible nil))))))
 
 
 (defun org-treeusage-parse--gettitlebounds (info)
@@ -69,13 +72,12 @@ Popped from and pushed to, as the org file is parsed.")
     (let ((dchar (- pend pbeg))
           (dline (count-lines pbeg pend))
           (dword (count-words pbeg pend))
-          ;; make key: level title
-          (dkey (cons 0 nil)))
-    (move-beginning-of-line 0)
-    (puthash dkey
-             (list :nlines dline :nchars dchar :nwords dword)
-             hashmap)
-    dkey)))
+          (dkey (cons 0 nil))) ;; make key: level title
+      (move-beginning-of-line 0)
+      (puthash dkey
+               (list :nlines dline :nchars dchar :nwords dword)
+               hashmap)
+      dkey)))
 
 
 (defun org-treeusage-parse--updateparents (lvl-now previousk)
@@ -98,17 +100,21 @@ Popped from and pushed to, as the org file is parsed.")
            (car org-treeusage-parse--prntalist))
           (t curr-parent))))
 
-(defun org-treeusage-parse--processvisible ()
-  "Parse the visible org headings in the current buffer, and collect information at each heading/node about number of lines, characters, and their percentages wrt the parent node.  The variable `org-treeusage-parse--hashmap' is updated to the hashmap generated here."
+(defun org-treeusage-parse--processvisible (&optional regenerate)
+  "Parse the visible org headings in the current buffer, and collect\
+information at each heading/node about number of lines, characters, and\
+their percentages with respect to the parent node.
+The variable `org-treeusage-parse--hashmap' is updated to the hashmap\
+ generated here.  If REGENERATE, clear the hashtable and do not re-use it."
   (save-excursion
     (setq-local org-treeusage-parse--prntalist nil)
-    (let ((hasher (make-hash-table :test 'equal))
+    (let ((hasher (if regenerate (make-hash-table :test 'equal)
+                    org-treeusage-parse--hashmap))
           (prnt-curr nil)
           (prev-key nil))
       ;; Jump to beginning and parse headers
       (push (org-treeusage-parse--makeroot hasher)
             org-treeusage-parse--prntalist)
-      ;;
       (while (let ((prevpnt (point)))
                ;; org-next-vis always returns nil, so
                ;; check point advancement manually.
@@ -118,29 +124,27 @@ Popped from and pushed to, as the org file is parsed.")
         (let* ((info (cadr (org-element-at-point)))
                (level (plist-get info :level))
                (bound (org-treeusage-parse--gettitlebounds info))
-               (head (car bound))
-               (hrng (cdr bound)))
+               (head (car bound)) (hrng (cdr bound))
+               (elkey (cons level head))
+               (elhash (gethash elkey hasher)))
           (when head
-            ;; Check and update parent
+            ;; Set parent, regardless of whether if it already exists.
             (setq prnt-curr (org-treeusage-parse--updateparents
                              level prev-key))
-            ;; Why have I nested lets like this? Lack of trust.
-            ;;
-            ;; calc number of chars, lines, words
-            (let ((posbeg (plist-get info :begin))
-                  (posend (plist-get info :end)))
-              (let ((dchar (- posend posbeg))
-                    (dline (count-lines posbeg posend))
-                    (dword (count-words posbeg posend))
-                    ;; make key: level title
-                    (elkey (cons level head)))
-                ;;
+            (unless elhash
+              ;; Why have I nested lets like this?
+              (let* ((posbeg (plist-get info :begin))
+                     (posend (plist-get info :end))
+                     (dchar (- posend posbeg))
+                     (dline (count-lines posbeg posend))
+                     (dword (count-words posbeg posend)))
+                ;; Check and update parent
                 (puthash elkey ;; Make values: plist
                          (list :nlines dline :nchars dchar
                                :nwords dword :bounds hrng
                                :parentkey prnt-curr)
-                         hasher)
-                (setq prev-key elkey))))))
+                         hasher))))
+          (setq prev-key elkey)))
       (setq-local org-treeusage-parse--hashmap hasher))))
 
 (provide 'org-treeusage-parse)

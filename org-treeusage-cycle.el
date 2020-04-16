@@ -27,15 +27,16 @@
 (require 'cl-lib)
 
 (defcustom org-treeusage-cycle-formats
-  '((barpercdiffname . "%1$-5s |%2$5.1f%%|%3$-5d|%6$s")
+  '((barpercdiffname . "%1$-5s |%2$5.1f%%|%3$-5d|%7$s")
+    (barpercdiffallname . "%1$-5s |%2$5.1f%%|l%4$-3d w%5$-4d c%6$-5d|%7$s")
     (bardiffperc . "%1$-5s |%3$d|%2$5.1f%%")
-    (bardiffname . "%1$s%3$-5d|%6$s")
+    (bardiffname . "%1$s%3$-5d|%7$s")
     (bardiff . "%1$s%3$d")
     (barname . "%1$-5s |%4$s")
     (bar . "%1$-5s")
-    (percname . "%2$5.1f%%|%6$s")
+    (percname . "%2$5.1f%%|%7$s")
     (perc . "%2$5.1f%%")
-    (diffname . "%3$d|%6$s")
+    (diffname . "%3$d|%7$s")
     (diff . "%3$d"))
   "Specify different formats to represent the line or character density.
 Some are given here as examples.  The first is the default used on startup.
@@ -58,9 +59,9 @@ The format takes 6 positional arguments:
 (defvar org-treeusage-cycle--publichook nil
   "Hook to run at the end of an interactive function.")
 
-(defun org-treeusage-cycle--runpublichook ()
-  "Run the public finish hook."
-  (run-hooks 'org-treeusage-cycle--publichook))
+(defun org-treeusage-cycle--runpublichook (&optional arg)
+  "Run the public finish hook, and pass ARG."
+  (run-hook-with-args 'org-treeusage-cycle--publichook arg))
 
 (defun org-treeusage-cycle--usermodes (forw)
   "Cycle line formats forward if FORW, otherwise backwards."
@@ -71,6 +72,7 @@ The format takes 6 positional arguments:
          (next-index (mod (+ curr-index direc) (length oh-fm)))
          (next-umode (nth next-index oh-fm)))
     (setq-local org-treeusage-cycle--currentmode next-umode)
+    ;; nil argument does not regenerate hashmap
     (org-treeusage-cycle--runpublichook)
     (message "Mode: %s" next-umode)))
 
@@ -87,12 +89,16 @@ The format takes 6 positional arguments:
   (org-treeusage-cycle--usermodes nil))
 
 ;;;###autoload
-(defun org-treeusage-cycle-toggletype ()
-  "Toggle the diff type from characters to lines."
+(defun org-treeusage-cycle-cycletype ()
+  "Cycle the diff type between `lines', `chars', or `words'."
   (interactive)
-  (let* ((cmode org-treeusage-cycle--difftype)
-         (nmode (if (eq cmode 'lines) 'chars 'lines)))
+  (let* ((types '('lines 'chars 'words))
+         (cmode org-treeusage-cycle--difftype)
+         (cindx (cl-position cmode types))
+         (nindx (mod (1+ cindx) (length types)))
+         (nmode (nth nindx types)))
     (setq-local org-treeusage-cycle--difftype nmode)
+    ;; nil argument does not regenerate hashmap
     (org-treeusage-cycle--runpublichook)
     (message "Type: %s" nmode)))
 
