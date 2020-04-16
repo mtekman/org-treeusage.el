@@ -27,21 +27,22 @@
 (require 'cl-lib)
 
 (defcustom org-treeusage-cycle-formats
-  '((barpercdiffname . "%1$-5s |%2$5.1f%%|%3$-5d|%7$s")
+  '((barname . "%1$-5s |%7$s")
+    (bardiffname . "%1$s%3$-5d|%7$s")
+    (barpercdiffname . "%1$-5s |%2$5.1f%%|%3$-5d|%7$s")
+    (percname . "%2$5.1f%%|%7$s")
+    (diffname . "%3$d|%7$s")
     (barpercdiffallname . "%1$-5s |%2$5.1f%%|l%4$-3d w%5$-4d c%6$-5d|%7$s")
     (bardiffperc . "%1$-5s |%3$d|%2$5.1f%%")
-    (bardiffname . "%1$s%3$-5d|%7$s")
     (bardiff . "%1$s%3$d")
-    (barname . "%1$-5s |%4$s")
     (bar . "%1$-5s")
-    (percname . "%2$5.1f%%|%7$s")
     (perc . "%2$5.1f%%")
-    (diffname . "%3$d|%7$s")
     (diff . "%3$d"))
-  "Specify different formats to represent the line or character density.
-Some are given here as examples.  The first is the default used on startup.
-Bands are given by `org-treeusage-percentlevels' variable, and the current difftype is given as `org-treeusage-cycle--difftype'.
-The format takes 6 positional arguments:
+  "Specify different formats to represent the line or character density.\
+Some are given here as examples.  The first is the default used on\
+ startup.  Bands are given by `org-treeusage-percentlevels' variable, and\
+ the current difftype is given as `org-treeusage-cycle--difftype'.  The\
+ format takes 6 positional arguments:
      1. A string representing the percentage band for the current diff type.
      2. A float showing the current percentage for current diff type.
      3. An integer showing the absolute diff type amount.
