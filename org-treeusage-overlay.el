@@ -31,7 +31,7 @@
 (defvar org-treeusage-overlay--backupformat "%1$-5s--%3$d"
   "Fallback in case an invalid line format is chosen by the user.")
 
-(defcustom org-treeusage-overlay-colorbands t
+(defcustom org-treeusage-overlay-usecolorbands t
   "Use the color in the percentage bands given in `org-treeusage-overlay-percentlevels'."
   :type 'boolean
   :group 'org-treeusage)
@@ -93,45 +93,44 @@ Run `list-faces-display' for a selection of faces."
 
 (defun org-treeusage-overlay--setall (&optional reusemap)
   "Set all overlays.  If REUSEMAP is passed (as is the case) when called from `org-cycle-hook', then use or update the existing hashtable."
-  (org-treeusage-overlay--clear)
-  (let* ((difftype (intern (format ":n%s" org-treeusage-cycle--difftype)))
+  (let* ((usecolor org-treeusage-overlay-usecolorbands)
+         (perclevels org-treeusage-overlay-percentlevels)
          (hasher (org-treeusage-parse--gethashmap reusemap))
+         (ndiffs (intern (format ":n%s" org-treeusage-cycle--difftype)))
+         (pdiffs (intern (format ":p%s" org-treeusage-cycle--difftype)))
          (lineform (org-treeusage-overlay--getformatline))
-         (percbands (if org-treeusage-overlay-colorbands
-                        org-treeusage-overlay-percentlevels
-                      (--map (cons (nth 0 it) (nth 1 it))  ;; Kill faces
-                             org-treeusage-overlay-percentlevels))))
+         (percbands (if usecolor perclevels
+                      (--map (cons (nth 0 it) (nth 1 it)) perclevels))))
+    (if (member reusemap '(-1 nil))
+        ;; -1  # Mode initialise :: clear overlays + delete hashmap
+        ;; nil # Lformat changed :: clear overlays + use existing hashmap
+        ;; any # Head expa/contr :: leave overlays + update the hashmap
+        (org-treeusage-overlay--clear))
     (maphash
      (lambda (head info)
        (let ((bounds (plist-get info :bounds)) ;; child
              (nchars (plist-get info :nchars))
              (nwords (plist-get info :nwords))
              (nlines (plist-get info :nlines))
-             (ndiffs (plist-get info difftype)) ;; one of the ones above.
-             (leveln (car head)) (header (cdr head))
-             (parent (gethash (plist-get info :parentkey) hasher)))
-         (if parent
-             (let* ((par-diff (plist-get parent difftype)) ;; parent
-                    ;; Perform calculation
-                    (percdiff (/ (float (* 100 ndiffs)) par-diff))
-                    ;; default face are org-level-headings
-                    (facehead (intern (format "org-level-%s" leveln)))
-                    (overhead (make-overlay (car bounds) (cdr bounds)))
-                    (percsymb (cdr (--first (<= (caar it)
-                                                (truncate percdiff)
-                                                (cdar it))
-                                            percbands))))
-               ;; if percband is just a symbol, use it
-               ;; otherwise (symb . face)
+             (ndiffs (plist-get info ndiffs)) ;; one of the n*'s
+             (pdiffs (plist-get info pdiffs)) ;; can only show 1 perc type
+             (leveln (car head)) (header (cdr head)))
+         (if pdiffs ;; i.e a parent exists
+             (let ((facehead (intern (format "org-level-%s" leveln)))
+                   (overhead (make-overlay (car bounds) (cdr bounds)))
+                   (percsymb (cdr (--first (<= (caar it)
+                                               (truncate pdiffs)
+                                               (cdar it))
+                                           percbands))))
                (if (eq (type-of percsymb) 'cons)
-                   (setq facehead (cdr percsymb)
+                   (setq facehead (cdr percsymb)  ;; use it else (symb . face)
                          percsymb (car percsymb)))
                ;; Header
                (overlay-put overhead :org-treeusage t)
                (overlay-put overhead 'face facehead)
                (overlay-put overhead 'display
                             (format lineform ;; symbol, percentage, abs
-                                    percsymb percdiff ndiffs
+                                    percsymb pdiffs ndiffs
                                     nlines nwords nchars
                                     header))))))
      hasher)))
