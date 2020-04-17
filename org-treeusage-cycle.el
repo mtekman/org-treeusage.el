@@ -93,7 +93,7 @@ Some are given here as examples.  The first is the default used on\
 (defun org-treeusage-cycle-cycletype ()
   "Cycle the diff type between `lines', `chars', or `words'."
   (interactive)
-  (let* ((types '('lines 'chars 'words))
+  (let* ((types '(lines chars words))
          (cmode org-treeusage-cycle--difftype)
          (cindx (cl-position cmode types))
          (nindx (mod (1+ cindx) (length types)))
