@@ -110,31 +110,31 @@ Run `list-faces-display' for a selection of faces."
     (maphash
      (lambda (head info)
        (if (or clearovs (not (plist-get info :overlay-already)))
-         (let ((bounds (plist-get info :bounds)) ;; child
-               (nchars (plist-get info :nchars))
-               (nwords (plist-get info :nwords))
-               (nlines (plist-get info :nlines))
-               (ndiffs (plist-get info ndiffs)) ;; one of the n*'s
-               (pdiffs (plist-get info pdiffs)) ;; can only show 1 perc type
-               (leveln (car head)) (header (cdr head)))
-           (if pdiffs ;; i.e a parent exists
-               (let ((facehead (intern (format "org-level-%s" leveln)))
-                     (overhead (make-overlay (car bounds) (cdr bounds)))
-                     (percsymb (cdr (--first (<= (caar it)
-                                                 (truncate pdiffs)
-                                                 (cdar it))
-                                             percbands))))
-                 (if (eq (type-of percsymb) 'cons)
-                     (setq facehead (cdr percsymb)  ;; use it else (symb . face)
-                           percsymb (car percsymb)))
-                 ;; Header
-                 (overlay-put overhead :org-treeusage t)
-                 (overlay-put overhead 'face facehead)
-                 (overlay-put overhead 'display
-                              (format lineform ;; symbol, percentage, abs
-                                      percsymb pdiffs ndiffs
-                                      nlines nwords nchars
-                                      header)))))))
+           (let ((bounds (plist-get info :bounds)) ;; child
+                 (nchars (plist-get info :nchars))
+                 (nwords (plist-get info :nwords))
+                 (nlines (plist-get info :nlines))
+                 (ndiffs (plist-get info ndiffs)) ;; one of the n*'s
+                 (pdiffs (plist-get info pdiffs)) ;; can only show 1 perc type
+                 (leveln (car head)) (header (cdr head)))
+             (if pdiffs ;; i.e a parent exists
+                 (let ((facehead (intern (format "org-level-%s" leveln)))
+                       (overhead (make-overlay (car bounds) (cdr bounds)))
+                       (percsymb (cdr (--first (<= (caar it)
+                                                   (truncate pdiffs)
+                                                   (cdar it))
+                                               percbands))))
+                   (if (eq (type-of percsymb) 'cons)
+                       (setq facehead (cdr percsymb)
+                             percsymb (car percsymb)))
+                   ;; Header
+                   (overlay-put overhead :org-treeusage t)
+                   (overlay-put overhead 'face facehead)
+                   (overlay-put overhead 'display
+                                (format lineform ;; symbol, percentage, abs
+                                        percsymb pdiffs ndiffs
+                                        nlines nwords nchars
+                                        header)))))))
      hasher)))
 
 

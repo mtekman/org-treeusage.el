@@ -89,9 +89,9 @@ Popped from and pushed to, as the org file is parsed.")
 
 (defun org-treeusage-parse--gethashmap (&optional reusemap)
   "Retrieve or generate hashmap.  If REUSEMAP is:
-  nil # Lformat changed :: use existing hashmap
-  -1  # Mode initialise :: delete hashmap
-  any # Head expa/contr :: update the hashmap from point."
+* nil :: Lformat changed, use existing hashmap
+*  -1 :: Mode initialise, delete hashmap
+* any :: Head expa/contr, update the hashmap from point."
   (let ((noexist (not org-treeusage-parse--hashmap)))
     (cond ((eq reusemap nil) org-treeusage-parse--hashmap)
           ((or (eq reusemap -1) noexist)
@@ -102,7 +102,8 @@ Popped from and pushed to, as the org file is parsed.")
 
 (defun org-treeusage-parse--processvisible (&optional clearmap startpos)
   "Parse the visible org headings in the current buffer, and calculate\
-percentages. Set `org-treeusage-parse--hashmap'.  If CLEARMAP, clear the\ hashtable and do not re-use it.  If STARTPOS, assume that we are processing\
+percentages.  Set `org-treeusage-parse--hashmap'.  If CLEARMAP, clear the\
+hashtable and do not re-use it.  If STARTPOS, assume that we are processing\
 only the current heading and any children, stop once the parent changes."
   (save-excursion
     (setq-local org-treeusage-parse--prntalist nil) ;; clear parent list
