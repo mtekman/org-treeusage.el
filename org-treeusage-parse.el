@@ -48,7 +48,6 @@ Popped from and pushed to, as the org file is parsed.")
                            (match-end 0))))
           (cons head (cons beg end)))))))
 
-
 (defun org-treeusage-parse--makeroot (hashmap)
   "Generate the initial root parent node by getting the full bounds of the whole org file and inserting them into the HASHMAP."
   (let* ((pend (progn (goto-char (point-max))
@@ -101,8 +100,7 @@ Popped from and pushed to, as the org file is parsed.")
           (t (progn (message "Updating from point.")
                     (org-treeusage-parse--processvisible nil (point)))))))
 
-(defun org-treeusage-parse--processvisible (&optional clearmap
-                                                      startpos)
+(defun org-treeusage-parse--processvisible (&optional clearmap startpos)
   "Parse the visible org headings in the current buffer, and calculate\
 percentages. Set `org-treeusage-parse--hashmap'.  If CLEARMAP, clear the\ hashtable and do not re-use it.  If STARTPOS, assume that we are processing\
 only the current heading and any children, stop once the parent changes."
@@ -129,28 +127,32 @@ only the current heading and any children, stop once the parent changes."
                (head (car bound)) (hrng (cdr bound))
                (elkey (cons level head))
                (elhash (gethash elkey hasher)))
-          (when (and head (not elhash))
-            ;; Set parent, regardless of whether if it already exists.
-            (setq prnt-curr (funcall up-parent level prev-key))
-            (if (and startpos (not prnt-curr)) ;; no parent? break.
-                (goto-char (point-at-eol))
-              (let* ((parent (gethash prnt-curr hasher))
-                     (posbeg (plist-get info :begin))
-                     (posend (plist-get info :end))
-                     (dchar (- posend posbeg))
-                     (dline (count-lines posbeg posend))
-                     (dword (count-words posbeg posend)))
-                (let ((pchar (funcall calcperc dchar
-                                      (plist-get parent :nchars)))
-                      (pline (funcall calcperc dline
-                                      (plist-get parent :nlines)))
-                      (pword (funcall calcperc dword
-                                      (plist-get parent :nwords))))
-                  (puthash elkey ;; Make values: plist
-                           (list :nlines dline :nchars dchar :nwords dword
-                                 :plines pline :pchars pchar :pwords pword
-                                 :bounds hrng)
-                           hasher)))))
+          (if elhash
+              ;; If data set from a previous run, then this must be
+              ;; an update operation, so tell the overlay setter to skip
+              (plist-put (gethash elkey hasher) :overlay-already t)
+            (when head
+              ;; Set parent, regardless of whether if it already exists.
+              (setq prnt-curr (funcall up-parent level prev-key))
+              (if (and startpos (not prnt-curr)) ;; no parent? break.
+                  (goto-char (point-at-eol))
+                (let* ((parent (gethash prnt-curr hasher))
+                       (posbeg (plist-get info :begin))
+                       (posend (plist-get info :end))
+                       (dchar (- posend posbeg))
+                       (dline (count-lines posbeg posend))
+                       (dword (count-words posbeg posend)))
+                  (let ((pchar (funcall calcperc dchar
+                                        (plist-get parent :nchars)))
+                        (pline (funcall calcperc dline
+                                        (plist-get parent :nlines)))
+                        (pword (funcall calcperc dword
+                                        (plist-get parent :nwords))))
+                    (puthash elkey ;; Make values: plist
+                             (list :nlines dline :nchars dchar :nwords dword
+                                   :plines pline :pchars pchar :pwords pword
+                                   :bounds hrng)
+                             hasher))))))
           (setq prev-key elkey)))
       (setq-local org-treeusage-parse--hashmap hasher))))
 
