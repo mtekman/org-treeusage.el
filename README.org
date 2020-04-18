@@ -94,6 +94,10 @@ Please consult the in-built help =C-h f RET format= for more information on how 
 
 ** Changelog
 
+*** 0.4
+- Added caching (massive performance increase!)
+- Fixed dodgy header line and mode line
+
 *** 0.3
 - Added =org-treeusage-overlay-colorbands= custom setting to colourise percentage bands.
 
