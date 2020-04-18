@@ -133,7 +133,8 @@ Run `list-faces-display' for a selection of faces."
                                     percsymb pdiffs ndiffs
                                     nlines nwords nchars
                                     header))))))
-     hasher)))
+     ;; TODO: A way to filter this for only updated entries when reusing
+     (if (not (eq reusemaphasher)))
 
 
 (provide 'org-treeusage-overlay)

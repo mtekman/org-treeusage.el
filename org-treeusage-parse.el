@@ -30,23 +30,7 @@
   "List of (level . heading) parent nodes.
 Popped from and pushed to, as the org file is parsed.")
 
-(defvar-local org-treescope-parse--toupdate nil
-  "List of (position . (level . heading)) elements.
-If the hashmap is not regenerated, then only these overlays updated.")
-
 (defvar-local org-treeusage-parse--hashmap nil)
-
-
-(defun org-treeusage-parse--gethashmap (&optional reusemap)
-  "Retrieve or generate hashmap.  If REUSEMAP is t, then parse the buffer with the existing hashmap but only update the entries.  If REUSEMAP is -1, then completely regenerate the hashmap.  A value of nil will return the map as it is."
-  (let ((noexist (not org-treeusage-parse--hashmap)))
-    (cond ((eq reusemap nil) org-treeusage-parse--hashmap)
-          ((or (eq reusemap -1) noexist)
-           (progn (message "Regenerating.")
-                  (org-treeusage-parse--processvisible t)))
-          (t (progn (message "Updating.")
-                    (org-treeusage-parse--processvisible nil))))))
-
 
 (defun org-treeusage-parse--gettitlebounds (info)
   "Get header title and the bounding positions from org element INFO."
@@ -104,63 +88,70 @@ If the hashmap is not regenerated, then only these overlays updated.")
            (car org-treeusage-parse--prntalist))
           (t curr-parent))))
 
-(defun org-treeusage-parse--processvisible (&optional regenerate)
-  "Parse the visible org headings in the current buffer, and collect\
-information at each heading/node about number of lines, characters, and\
-their percentages with respect to the parent node.
-The variable `org-treeusage-parse--hashmap' is updated to the hashmap\
- generated here.  If REGENERATE, clear the hashtable and do not re-use it."
+(defun org-treeusage-parse--gethashmap (&optional reusemap)
+  "Retrieve or generate hashmap.  If REUSEMAP is:
+  nil # Lformat changed :: use existing hashmap
+  -1  # Mode initialise :: delete hashmap
+  any # Head expa/contr :: update the hashmap from point."
+  (let ((noexist (not org-treeusage-parse--hashmap)))
+    (cond ((eq reusemap nil) org-treeusage-parse--hashmap)
+          ((or (eq reusemap -1) noexist)
+           (progn (message "Regenerating.")
+                  (org-treeusage-parse--processvisible t)))
+          (t (progn (message "Updating from point.")
+                    (org-treeusage-parse--processvisible nil (point)))))))
+
+(defun org-treeusage-parse--processvisible (&optional clearmap
+                                                      startpos)
+  "Parse the visible org headings in the current buffer, and calculate\
+percentages. Set `org-treeusage-parse--hashmap'.  If CLEARMAP, clear the\ hashtable and do not re-use it.  If STARTPOS, assume that we are processing\
+only the current heading and any children, stop once the parent changes."
   (save-excursion
-    (setq-local org-treeusage-parse--prntalist nil)
-    (let ((hasher (if regenerate (make-hash-table :test 'equal)
-                    (org-treeusage-parse--gethashmap regenerate)))
+    (setq-local org-treeusage-parse--prntalist nil) ;; clear parent list
+    (let ((gettitle #'org-treeusage-parse--gettitlebounds)
+          (up-parent #'org-treeusage-parse--updateparents)
+          (hasher (if clearmap (make-hash-table :test 'equal)
+                    org-treeusage-parse--hashmap))
           (calcperc (lambda (c p) (/ (float (* 100 c)) p)))
-          (prnt-curr nil) (prev-key nil)
-          (overlays-from-last
-           (unless regenerate org-treescope-parse--toupdate))
-          (overlays-to-update nil))
-      (push (org-treeusage-parse--makeroot hasher)  ;; Jump to beginning
-            org-treeusage-parse--prntalist)         ;; and parse headers
+          (prnt-curr nil) (prev-key nil))
+      (push (if startpos                              ;; Set current position
+                (--> (cadr (org-element-at-point))    ;; as parent if exists
+                     (cons (plist-get it :level)
+                           (car (funcall gettitle it))))
+              (org-treeusage-parse--makeroot hasher)) ;; Or jump to BOF
+            org-treeusage-parse--prntalist)
       (while (let ((prevpnt (point)))
                (progn (org-next-visible-heading 1)  ;; org-next-vis always
                       (not (eq prevpnt (point)))))  ;; returns nil
-        ;; If this position already has an overlay, and we're not
-        ;; regenerating, skip it and set the prev-key.
-        (let ((key-at-pos (alist-get (point) overlays-from-last)))
-          (if key-at-pos
-              (setq prev-key key-at-pos)
-            ;; No key, parse the region
-            (let* ((info (cadr (org-element-at-point)))
-                   (level (plist-get info :level))
-                   (bound (org-treeusage-parse--gettitlebounds info))
-                   (head (car bound)) (hrng (cdr bound))
-                   (elkey (cons level head))
-                   (elhash (gethash elkey hasher)))
-              (when (and head (not elhash))
-                ;; Set parent, regardless of whether if it already exists.
-                (setq prnt-curr (org-treeusage-parse--updateparents
-                                 level prev-key))
-                (let* ((parent (gethash prnt-curr hasher))
-                       (posbeg (plist-get info :begin))
-                       (posend (plist-get info :end))
-                       (dchar (- posend posbeg))
-                       (dline (count-lines posbeg posend))
-                       (dword (count-words posbeg posend)))
-                  (let ((pchar (funcall calcperc dchar
-                                        (plist-get parent :nchars)))
-                        (pline (funcall calcperc dline
-                                        (plist-get parent :nlines)))
-                        (pword (funcall calcperc dword
-                                        (plist-get parent :nwords))))
-                    ;; Store positions and keys updated
-                    (push (cons (car hrng) elkey) overlays-to-update)
-                    (puthash elkey ;; Make values: plist
-                             (list :nlines dline :nchars dchar :nwords dword
-                                   :plines pline :pchars pchar :pwords pword
-                                   :bounds hrng)
-                             hasher))))
-              (setq prev-key elkey)))))
-      (setq-local org-treescope-parse--toupdate overlays-to-update)
+        (let* ((info (cadr (org-element-at-point)))
+               (level (plist-get info :level))
+               (bound (funcall gettitle info))
+               (head (car bound)) (hrng (cdr bound))
+               (elkey (cons level head))
+               (elhash (gethash elkey hasher)))
+          (when (and head (not elhash))
+            ;; Set parent, regardless of whether if it already exists.
+            (setq prnt-curr (funcall up-parent level prev-key))
+            (if (and startpos (not prnt-curr)) ;; no parent? break.
+                (goto-char (point-at-eol))
+              (let* ((parent (gethash prnt-curr hasher))
+                     (posbeg (plist-get info :begin))
+                     (posend (plist-get info :end))
+                     (dchar (- posend posbeg))
+                     (dline (count-lines posbeg posend))
+                     (dword (count-words posbeg posend)))
+                (let ((pchar (funcall calcperc dchar
+                                      (plist-get parent :nchars)))
+                      (pline (funcall calcperc dline
+                                      (plist-get parent :nlines)))
+                      (pword (funcall calcperc dword
+                                      (plist-get parent :nwords))))
+                  (puthash elkey ;; Make values: plist
+                           (list :nlines dline :nchars dchar :nwords dword
+                                 :plines pline :pchars pchar :pwords pword
+                                 :bounds hrng)
+                           hasher)))))
+          (setq prev-key elkey)))
       (setq-local org-treeusage-parse--hashmap hasher))))
 
 (provide 'org-treeusage-parse)
