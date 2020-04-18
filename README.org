@@ -19,7 +19,7 @@ Install from MELPA or using =use-package=:
        :custom
        ;; Below two settings recreate the above image
        ((org-treescope-overlay-header nil)
-        (org-treeusage-overlay-colorbands nil)))
+        (org-treeusage-overlay-usecolorbands nil)))
    #+end_src
 
 ** Usage
@@ -58,7 +58,7 @@ The percentage of the contributing content of the current heading divided by the
 
 By default there 11 bands each assigned vertical bar symbols that increase with the percentage band, but there could ultimately be any number of bands representing any symbols the user desires. The bands should /ideally/ not overlap, but it is not a strict requirement, where the first matching band is returned.
 
-By default, the entire heading is coloured by the faces given for the corresponding percentage band, but this can be disabled to fallback onto the org-heading-level faces by setting =org-treeusage-overlay-colorbands= to =nil=.
+By default, the entire heading is coloured by the faces given for the corresponding percentage band, but this can be disabled to fallback onto the org-heading-level faces by setting =org-treeusage-overlay-usecolorbands= to =nil=.
 
 
 ***** Line Formats

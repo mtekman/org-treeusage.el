@@ -6,7 +6,7 @@
 ;; URL: https://github.com/mtekman/org-treeusage.el
 ;; Keywords: outlines
 ;; Package-Requires: ((emacs "26.1") (dash "2.17.0") (org "9.1.6"))
-;; Version: 0.3.1
+;; Version: 0.4
 
 ;;; License:
 
@@ -59,6 +59,7 @@ Useful mostly for debugging."
     (define-key map (kbd ".") 'org-treeusage-cycle-modeforward)
     (define-key map (kbd "l") 'org-treeusage-cycle-cycletype)
     (define-key map (kbd "<return>") 'org-treeusage-mode)
+    (define-key map (kbd "q") 'org-treeusage-mode)
     map)
   "Keymap for minor mode.")
 
@@ -67,17 +68,17 @@ Useful mostly for debugging."
   nil
   " tu"
   org-treeusage--modebind
-  (if org-treeusage-mode
-      (progn (read-only-mode t)
-             (add-hook 'org-cycle-hook #'org-treeusage-overlay--setall)
-             ;; assume buffer modified, regenerate (-1)
-             (org-treeusage-overlay--setall -1)
-             (org-treeusage-overlay--setheader t))
-    (read-only-mode -1)
-    (remove-hook 'org-cycle-hook #'org-treeusage-overlay--setall)
-    (org-treeusage-overlay--clear)
-    (org-treeusage-overlay--setheader nil)))
-
+  (if (string-suffix-p ".org" (buffer-file-name))
+      (if org-treeusage-mode
+          (progn (setq buffer-read-only t)
+                 (add-hook 'org-cycle-hook #'org-treeusage-overlay--setall)
+                 (org-treeusage-overlay--setall -1) ;; regenerate (-1)
+                 (org-treeusage-overlay--setheader t))
+        (setq buffer-read-only nil)
+        (remove-hook 'org-cycle-hook #'org-treeusage-overlay--setall)
+        (org-treeusage-overlay--clear)
+        (org-treeusage-overlay--setheader nil))
+    (message "Not an org file.")))
 
 (add-hook 'org-treeusage-cycle--publichook #'org-treeusage-overlay--setall)
 

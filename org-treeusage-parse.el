@@ -2,11 +2,6 @@
 
 ;; Copyright (C) 2020 Mehmet Tekman <mtekman89@gmail.com>
 
-;; Author: Mehmet Tekman
-;; URL: https://github.com/mtekman/org-treeusage.el
-;; Keywords: outlines
-;; Version: 0.3.1
-
 ;;; License:
 
 ;; This program is free software; you can redistribute it and/or modify

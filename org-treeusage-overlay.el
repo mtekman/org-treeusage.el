@@ -2,11 +2,6 @@
 
 ;; Copyright (C) 2020 Mehmet Tekman <mtekman89@gmail.com>
 
-;; Author: Mehmet Tekman
-;; URL: https://github.com/mtekman/org-treeusage.el
-;; Keywords: outlines
-;; Version: 0.3.1
-
 ;;; License:
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -69,10 +64,10 @@ Run `list-faces-display' for a selection of faces."
         (setq-local org-treeusage-overlay--previousheader header-line-format)
         (setq-local header-line-format
                     (substitute-command-keys
-                     "Cycle Formats with \
+                     "Line formats: \
 `\\[org-treeusage-cycle-modebackward]' or \
-`\\[org-treeusage-cycle-modeforward]', and toggle chars/lines with \
-`\\[org-treeusage-cycle-toggletype]'.")))))
+`\\[org-treeusage-cycle-modeforward]' | Diff types: \
+`\\[org-treeusage-cycle-cycletype]'")))))
 
 
 (defun org-treeusage-overlay--getformatline ()
