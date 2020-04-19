@@ -66,24 +66,28 @@ By default, the entire heading is coloured by the faces given for the correspond
 There are 10 different line formats provided in the =org-treeusage-cycle-format= variable, each providing a different sub-selection of titles and metrics to show to the user -- usually a different permutation of four different variables manipulated in format control strings, to represent the percentage /bar/, the percentage amount /perc/, the absolute content amount /diff/, and the headline name /name/.
 
 #+begin_src elisp
-  '((bardiffpercname . "%1$-5s |%3$-5d|%2$5.1f%%|%4$s")
-    (bardiffperc . "%1$-5s |%3$-5d|%2$5.1f%%")
-    (bardiffname . "%1$s%3$-5d|%4$s")
+  '((barname . "%1$-5s |%7$s")
+    (bardiffname . "%1$s%3$-5d|%7$s")
+    (barpercdiffname . "%1$-5s |%2$5.1f%%|%3$-5d|%7$s")
+    (percname . "%2$5.1f%%|%7$s")
+    (diffname . "%3$d|%7$s")
+    (barpercdiffallname . "%1$-5s |%2$5.1f%%|l%4$-3d w%5$-4d c%6$-5d|%7$s")
+    (bardiffperc . "%1$-5s |%3$d|%2$5.1f%%")
     (bardiff . "%1$s%3$d")
-    (barname . "%1$-5s |%4$s")
     (bar . "%1$-5s")
-    (percname . "%2$5.1f%%|%4$s")
     (perc . "%2$5.1f%%")
-    (diffname . "%3$d|%4$s")
     (diff . "%3$d"))
 #+end_src
 
-The names are descriptive but arbitrary, and users can append their own to the  =org-treeusage-cycle-format= variable. The value of each pair describes:
+The names are descriptive but arbitrary, and users can append their own to the  =org-treeusage-cycle-format= variable. The value of each pair describes 6 position arguments:
 
- 1. A string representing the percentage band of headline (as explained in the previous subsection).
- 2. A float representing the actual current percentage of the headline.
- 3. An integer showing the number of lines or characters in the headline content.
- 4. A string with the actual name of the headline.
+#+begin_src conf
+      1. A string representing the percentage band for the current diff type.
+      2. A float showing the current percentage for current diff type.
+      3. An integer showing the absolute diff type amount.
+  4,5,6. An integer showing the current values for lines, words, chars.
+      7. A string with the title of the headline."
+#+end_src
 
 Please consult the in-built help =C-h f RET format= for more information on how to represent these values.
 
