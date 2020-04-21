@@ -94,7 +94,7 @@ Please consult the in-built help =C-h f RET format= for more information on how 
 
 ** Similar Projects
 
- - [[https://github.com/novoid/org-du/tree/master/orgdu][org-du]] provides an interactive graphical representation of an org-file whilst being independent of emacs.
+ - [[https://github.com/novoid/org-du/][org-du]] provides an interactive graphical representation of an org-file whilst being independent of emacs.
 
 ** Changelog
 
