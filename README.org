@@ -1,5 +1,11 @@
 #+TITLE: org-treeusage.el
 
+*** This repo has migrated to GitLab
+https://gitlab.com/mtekman/org-treeusage.el
+****** (The copy here is archived. Please see the above link for the latest developments)
+
+#+HTML: <hr/>
+
 #+HTML: <a href="https://melpa.org/#/org-treeusage"><img src="https://melpa.org/packages/org-treeusage-badge.svg"></a>
 
 This library provides a minor mode for peeking at the line or character usage of each heading in an org-mode file with respect to the parent heading, allowing users with large org files to see the distribution of heading content and make informed decisions on where to prune, refile, or archive.
